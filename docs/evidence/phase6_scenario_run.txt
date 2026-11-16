@@ -1,0 +1,30 @@
+=== SetuHaul Phase 6 scenario run ===
+Transcript: /Users/hussain/Desktop/Claude Projects/Setuhaul Shipment Project/scenarios/phase6_transcript.txt
+Summary: /Users/hussain/Desktop/Claude Projects/Setuhaul Shipment Project/scenarios/phase6_summary.json
+{
+  "scenario": "phase6_replay",
+  "time_to_outcome_minutes": 25,
+  "share_resolved_without_takeover": 0.3333,
+  "conflicting_allocations": 0,
+  "options_later_infeasible": 1,
+  "clarification_turns": 4,
+  "slot_utilisation": 13.21,
+  "priority_policy_violations": 0,
+  "escalations": 2,
+  "metric_definitions": {
+    "time_to_outcome_minutes": "Simulated minutes elapsed from first scenario turn to final escalation.",
+    "share_resolved_without_takeover": "One confirmed driver booking divided by three driver-thread outcomes; escalated and unfinished threads are not counted as resolved.",
+    "options_later_infeasible": "Initially shown options that were no longer AVAILABLE after the competing hold.",
+    "clarification_turns": "Agent turns explicitly asking for shipment identity, ETA, or delay meaning.",
+    "slot_utilisation": "Live appointments (seeded plus scenario-created) divided by all slots in the snapshot.",
+    "priority_policy_violations": "No dispatch-reordering decision occurs in this scenario; zero violations were observed."
+  },
+  "feature_coverage": {
+    "delay_plus_clarification": true,
+    "later_options_comparison": true,
+    "multiple_requests_same_facility": true,
+    "competing_requests_one_slot": true,
+    "option_disappears_mid_flow": true,
+    "escalation_end_state": true
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "objective": "Assign the earliest feasible dock start first; for equal starts, prefer higher priority, then earlier ETA and shipment ID. Compare proposals by priority-weighted waiting minutes (wait minutes \u00d7 priority weight), total waiting minutes, and missed appointments.",
+  "facility_id": "FAC-JAI-01",
+  "shipment_ids": [
+    "SHP1002",
+    "SHP1003",
+    "SHP1004",
+    "SHP1006"
+  ],
+  "fixed_in_progress": [
+    {
+      "shipment_id": "SHP1002",
+      "dock": "D2",
+      "estimated_finish": "2026-08-04T09:18:00+05:30",
+      "rescheduled": false
+    }
+  ],
+  "priority_rule": {
+    "avg_wait_min": 13.3,
+    "total_wait_min": 40.0,
+    "priority_weighted_wait_min": 40.0,
+    "missed_appointments": 2,
+    "entries": [
+      {
+        "shipment_id": "SHP1003",
+        "dock": "D1",
+        "start": "2026-08-04T09:00:00+05:30",
+        "end": "2026-08-04T09:45:00+05:30",
+        "waited_min": 40.0,
+        "missed_own_appointment": false
+      },
+      {
+        "shipment_id": "SHP1004",
+        "dock": "D3",
+        "start": "2026-08-04T09:20:00+05:30",
+        "end": "2026-08-04T10:20:00+05:30",
+        "waited_min": 0.0,
+        "missed_own_appointment": true
+      },
+      {
+        "shipment_id": "SHP1006",
+        "dock": "D4",
+        "start": "2026-08-04T11:20:00+05:30",
+        "end": "2026-08-04T12:05:00+05:30",
+        "waited_min": 0.0,
+        "missed_own_appointment": true
+      }
+    ]
+  },
+  "naive_fcfs": {
+    "avg_wait_min": 13.3,
+    "total_wait_min": 40.0,
+    "priority_weighted_wait_min": 40.0,
+    "missed_appointments": 2,
+    "entries": [
+      {
+        "shipment_id": "SHP1003",
+        "dock": "D1",
+        "start": "2026-08-04T09:00:00+05:30",
+        "end": "2026-08-04T09:45:00+05:30",
+        "waited_min": 40.0,
+        "missed_own_appointment": false
+      },
+      {
+        "shipment_id": "SHP1004",
+        "dock": "D3",
+        "start": "2026-08-04T09:20:00+05:30",
+        "end": "2026-08-04T10:20:00+05:30",
+        "waited_min": 0.0,
+        "missed_own_appointment": true
+      },
+      {
+        "shipment_id": "SHP1006",
+        "dock": "D4",
+        "start": "2026-08-04T11:20:00+05:30",
+        "end": "2026-08-04T12:05:00+05:30",
+        "waited_min": 0.0,
+        "missed_own_appointment": true
+      }
+    ]
+  }
+}

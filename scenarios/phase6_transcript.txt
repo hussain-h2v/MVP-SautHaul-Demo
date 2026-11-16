@@ -1,0 +1,28 @@
+[2026-08-04T09:00:00+05:30] THR010 > hi
+AGENT > Aapke paas aaj mere paas ek se zyada load hain: SHP1004 (IndustrialHub Jaipur), SHP1020 (IndustrialHub Jaipur). Yeh kis load ke baare mein baat ho rahi hai?
+[2026-08-04T09:00:00+05:30] THR010 > SHP1004
+AGENT > Thik hai, SHP1004. Bataiye kab tak pahunchoge, ya kya check karna hai.
+[2026-08-04T09:00:00+05:30] THR010 > I will reach by 15:00
+AGENT > Yeh khali hai (abhi book nahi hua -- bataiye kaunsa chahiye, main hold kar dunga):
+1) Dock D1 (Standard) -- 15:00 se 16:00 tak
+2) Dock D2 (Standard) -- 15:00 se 16:00 tak
+3) Dock D3 (Standard) -- 15:00 se 16:00 tak
+[2026-08-04T09:00:00+05:30] THR010 > take it
+AGENT > Book ho gaya. Dock D1, 15:00 se 16:00 tak. Appointment reference APT-A4914E6A7E.
+[2026-08-04T09:10:00+05:30] THR001 > I am 20 minutes late
+AGENT > 20 minute ka matlab yeh hai ki aap 20 minute baad pahunchoge, ya yeh sirf theek karne mein laga time tha? Mujhe aapka sahi pahunchne ka time chahiye, marmat ka time nahi.
+[2026-08-04T09:10:00+05:30] THR001 > show me options
+AGENT > Yeh khali hai (abhi book nahi hua -- bataiye kaunsa chahiye, main hold kar dunga):
+1) Dock D2 (Standard) -- 12:00 se 13:00 tak
+2) Dock D4 (Standard) -- 12:00 se 13:00 tak
+3) Dock D1 (Standard) -- 13:00 se 14:00 tak
+[SCENARIO] competing hold for SLOT-JAI-019: success=False reason=SLOT_TAKEN
+[2026-08-04T09:10:00+05:30] THR001 > show me options (after option disappears)
+AGENT > Yeh khali hai (abhi book nahi hua -- bataiye kaunsa chahiye, main hold kar dunga):
+1) Dock D4 (Standard) -- 12:00 se 13:00 tak
+2) Dock D1 (Standard) -- 13:00 se 14:00 tak
+3) Dock D2 (Standard) -- 13:00 se 14:00 tak
+[2026-08-04T09:25:00+05:30] THR005 > I am 20 minutes late
+AGENT > 20 minute ka matlab yeh hai ki aap 20 minute baad pahunchoge, ya yeh sirf theek karne mein laga time tha? Mujhe aapka sahi pahunchne ka time chahiye, marmat ka time nahi.
+[2026-08-04T09:25:00+05:30] THR005 > show me options
+AGENT > Koi slot nahi mil raha -- 18:50 baje ke baad har compatible dock ya toh book hai, band hai, ya working hours ke bahar hai. Maine yeh operations ko bata diya hai (case EXC-8AAA180259); woh aapse seedha baat karenge.

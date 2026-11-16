@@ -1,0 +1,18 @@
+$ PYTHONPATH=src python3 -m pytest -q
+...                                                                      [100%]
+=============================== warnings summary ===============================
+../../../../../Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 13 warnings in 0.01s
+
+$ PYTHONPATH=src python3 -m tests.test_concurrency
+Trial 0: slot=SLOT-JAI-001 winner=A loser=B (reason=SLOT_TAKEN) -- active appointments on slot: 1  OK
+Trial 1: slot=SLOT-JAI-029 winner=B loser=A (reason=SLOT_TAKEN) -- active appointments on slot: 1  OK
+Trial 2: slot=SLOT-JAI-043 winner=A loser=B (reason=SLOT_TAKEN) -- active appointments on slot: 1  OK
+Trial 3: slot=SLOT-JAI-001 winner=A loser=B (reason=SLOT_TAKEN) -- active appointments on slot: 1  OK
+Trial 4: slot=SLOT-JAI-043 winner=A loser=B (reason=SLOT_TAKEN) -- active appointments on slot: 1  OK
+
+5/5 trials confirmed: no double booking, ever.

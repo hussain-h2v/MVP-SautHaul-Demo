@@ -41,7 +41,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ../apps/api:/app
+      - ../backend:/app
 
   worker:
     build:
@@ -55,7 +55,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ../apps/api:/app
+      - ../backend:/app
 
   web:
     build:
@@ -63,12 +63,14 @@ services:
       dockerfile: infra/Dockerfile.web
     env_file:
       - ../.env
+    environment:
+      API_INTERNAL_URL: http://api:8000
     ports:
       - "3000:3000"
     depends_on:
       - api
     volumes:
-      - ../apps/web:/app
+      - ../frontend:/app
       - /app/node_modules
       - /app/.next
 

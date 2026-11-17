@@ -13,3 +13,10 @@ Product-behaviour decisions (what to collect, hold vs confirm, escalation, etc.)
 9. **Python**: target 3.12 in Docker; local machine has 3.14, so all Python commands run in containers. `httpx` pinned `<0.28` for litellm compatibility.
 10. **`chat_threads.taken_over_by_user_id`** is deferred to Milestone 1 (needs `users`).
 11. **Pace**: milestone-by-milestone, per user choice.
+12. **Layout**: two top-level folders, `backend/` (was apps/api) and `frontend/` (was apps/web), per user request; `infra/` and `docs/` stay at root.
+13. **Auth**: access JWT (15 min) carries a session id checked against `sessions` on every request, so logout / force-logout / disable take effect immediately; refresh token rotates on each refresh. CSRF is double-submit (`csrf_token` cookie + `X-CSRF-Token`). Frontend reaches the API same-origin via a Next rewrite.
+14. **Invites**: no email service yet, so `POST /users` returns the one-time `invite_token` to the admin. TOTP and self-service password reset are deferred (planned M10 hardening).
+15. **Audit**: one SQLAlchemy session hook records every ORM insert/update/delete with actor, IP and trace id; secrets are masked. Raw-SQL writes (seed scripts) bypass it by design.
+16. **Events**: SSE is backed by a Redis Stream (resume with Last-Event-ID); each event carries facility/carrier scope and is filtered per principal.
+17. **Hold TTL** default is 15 min per the platform spec (the prototype used 5).
+18. **Test hashing** uses cheap argon2 parameters when `ENV=test`.

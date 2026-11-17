@@ -10,7 +10,7 @@ Build milestone by milestone (agreed with the user): each milestone is tested, c
   - [x] CI workflow, docs/DATA_AUDIT.md, DECISIONS.md
   - [x] Next.js app builds with four portal shells
   - [ ] shadcn/ui, next-intl, TanStack Query, api-client generation (moved to Milestone 1)
-- [ ] 1 Identity and shell - auth, users, roles, scopes, audit mechanism, settings, UI shell, permission-matrix tests
+- [x] **1 Identity and shell** - auth (login, rotation, lockout, CSRF, invite), RBAC matrix + scope isolation, audit hook + append-only log, settings, SSE (Redis Streams), web shell (i18n en/hi, theme, guards). Deferred: TOTP, password-reset email, email delivery (invite token returned by API), OIDC, shadcn CLI components (hand-rolled primitives), generated OpenAPI client
 - [ ] 2 Admin core
 - [ ] 3 Facility portal
 - [ ] 4 Scheduling and booking engine + INTEGRITY_PROOF

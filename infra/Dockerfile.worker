@@ -5,9 +5,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY apps/api/requirements.txt apps/api/requirements-dev.txt ./
+COPY backend/requirements.txt backend/requirements-dev.txt ./
 RUN pip install --default-timeout=120 --retries 10 --no-cache-dir -r requirements-dev.txt
 
-COPY apps/api ./
+COPY backend ./
 
 CMD ["arq", "app.workers.worker.WorkerSettings"]

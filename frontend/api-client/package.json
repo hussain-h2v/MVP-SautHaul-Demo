@@ -1,0 +1,11 @@
+{
+  "name": "@setuhaul/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "openapi-typescript ../../backend/openapi.json -o schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0"
+  }
+}

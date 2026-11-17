@@ -1,0 +1,75 @@
+{
+  "common": {
+    "appName": "SetuHaul",
+    "skipToContent": "Skip to content",
+    "signOut": "Sign out",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "live": "Live",
+    "connecting": "Connecting",
+    "reconnecting": "Reconnecting",
+    "menu": "Open menu",
+    "closeMenu": "Close menu",
+    "loading": "Loading",
+    "welcome": "Welcome, {name}",
+    "role": "Role",
+    "capabilities": "Your permissions",
+    "write": "Can edit",
+    "read": "View only",
+    "readOnlyNote": "Permissions come from the server; hidden menu items are also blocked by the API.",
+    "comingSoon": "Arrives in an upcoming milestone.",
+    "tagline": "Dock Scheduling Platform",
+    "taglineSub": "Drivers report delays on WhatsApp. Capacity is decided by deterministic code, never by AI."
+  },
+  "roles": {
+    "admin": "Admin",
+    "facility_planner": "Facility planner",
+    "coordinator": "Coordinator",
+    "carrier_user": "Carrier user"
+  },
+  "portals": {
+    "admin": "Admin portal",
+    "facility": "Facility portal",
+    "coordinator": "Coordinator portal",
+    "carrier": "Carrier portal"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "home": "Home",
+    "facilities": "Facilities",
+    "carriers": "Carriers",
+    "shipments": "Shipments",
+    "ai": "AI management",
+    "audit": "Audit log",
+    "schedule": "Day schedule",
+    "docks": "Docks",
+    "yard": "Yard and gate",
+    "inbox": "Inbox",
+    "holds": "Holds",
+    "escalations": "Escalations",
+    "board": "Live board",
+    "incoming": "Incoming shipments",
+    "drivers": "Drivers",
+    "vehicles": "Vehicles"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Use your SetuHaul work account.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in",
+    "invalidEmail": "Enter a valid email address.",
+    "passwordRequired": "Enter your password.",
+    "invalid": "Incorrect email or password.",
+    "locked": "This account is temporarily locked after repeated failed attempts. Try again later or ask an admin.",
+    "generic": "Could not sign in. Please try again.",
+    "driversNote": "Drivers do not sign in. They use the WhatsApp assistant."
+  },
+  "landing": {
+    "signIn": "Sign in to continue"
+  }
+}

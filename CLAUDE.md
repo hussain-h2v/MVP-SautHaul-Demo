@@ -2,12 +2,12 @@
 
 Enterprise platform: drivers report delays via WhatsApp; coordinators, facility planners, carriers and admins work in four Next.js portals; AI explains/classifies but **never decides capacity**. Only the scheduling and booking services create, change or release a slot.
 
-The legacy Streamlit/SQLite prototype lives in `src/`, `tests/`, `scenarios/`, `sql/audit/`, `data/` and is kept as reference. New work goes in `apps/`, `packages/`, `infra/`.
+The legacy Streamlit/SQLite prototype lives in `src/`, `tests/`, `scenarios/`, `sql/audit/`, `data/` and is kept as reference. New work goes in `backend/`, `frontend/`, `infra/`.
 
 ## Layout
-- `apps/api` FastAPI modular monolith (`app/core`, `app/modules/<name>/{router,service,repository,schemas,models}.py`, `app/workers`, `alembic`, `scripts`, `tests`)
-- `apps/web` Next.js App Router, route groups `(auth) admin facility coordinator carrier`
-- `packages/api-client` TS client generated from the OpenAPI schema
+- `backend` FastAPI modular monolith (`app/core`, `app/modules/<name>/{router,service,repository,schemas,models}.py`, `app/workers`, `alembic`, `scripts`, `tests`)
+- `frontend` Next.js App Router, route groups `(auth) admin facility coordinator carrier`
+- `frontend/api-client` TS client generated from the OpenAPI schema
 - `infra` Dockerfiles + `docker-compose.yml`; `docs` PLAN, DECISIONS, DATA_AUDIT, etc.
 
 ## Rules
@@ -24,5 +24,5 @@ docker compose -f infra/docker-compose.yml up -d postgres redis
 docker compose -f infra/docker-compose.yml run --rm api alembic upgrade head
 MSYS_NO_PATHCONV=1 docker compose -f infra/docker-compose.yml run --rm -v "$(pwd -W)/data:/data:ro" api python -m scripts.seed_reference
 docker compose -f infra/docker-compose.yml run --rm api pytest -q
-cd apps/web && npm run dev
+cd frontend && npm run dev
 ```

@@ -14,5 +14,9 @@ SWEEP = Counter("setuhaul_sweep_total", "Rows handled by the sweeper", ["kind"],
 SSE_CONNECTIONS = Gauge("setuhaul_sse_connections", "Open SSE connections", registry=registry)
 
 
+AI_REQUESTS = Counter("setuhaul_ai_requests_total", "AI router requests by task and outcome", ["task", "outcome"], registry=registry)
+AI_LATENCY = Histogram("setuhaul_ai_latency_seconds", "AI router latency", ["task"], registry=registry)
+
+
 def render() -> bytes:
     return generate_latest(registry)

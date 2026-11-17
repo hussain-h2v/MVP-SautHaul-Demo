@@ -104,6 +104,12 @@ async def notify(db: AsyncSession, *, type: str, title: str, body: str = "", pay
 
 async def _project(db: AsyncSession, ev: OutboxEvent, res: ProcessResult) -> None:
     payload = ev.payload or {}
+    if ev.event_type.startswith("ai."):  # AI platform alerts (provider/key failure, budget threshold) go to admins
+        title = str(payload.get("title") or ev.event_type)
+        await notify(db, type=ev.event_type, title=title, body=str(payload.get("body") or ""), payload=payload, role="admin")
+        res.notifications += 1
+        res.to_publish.append((None, None, {"type": ev.event_type, "title": title}))
+        return
     if ev.event_type not in TITLES or not payload.get("shipment_id"):
         return  # unknown type: nothing to show, still marked sent
     sid = UUID(str(payload["shipment_id"]))

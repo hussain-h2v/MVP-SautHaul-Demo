@@ -27,14 +27,14 @@ Run everything through Docker (see root `CLAUDE.md`). Status: done = tested, pla
 | `exceptions` | Driver exception records (created by the agent in M8) | models + reads |
 | `notifications` | In-app notifications from the outbox (arq every 10 s), per-user read state, scoped | done (M5); email/WhatsApp delivery M8 |
 | `whatsapp`, `agent` | Webhook, templates, simulator, LangGraph driver assistant | M8 |
-| `ai` | Providers, keys, models, routes, fallback, circuit breakers, budgets, prompts, evals | M7 |
+| `ai` | `ai.run` router, providers/keys/models/routes, fallback + breakers + budgets, PII masking, prompts, evaluations, usage, logs, safety, offline mock provider | done (M7) |
 | `insights`, `analytics` | Driver/dock/coordinator/carrier/network insights, dashboards | M9 |
 
 ## Cross-cutting (`app/core`)
 `listing` (sort/search/CSV), `config`, `db` (UUID/version mixins), `security` (argon2, JWT, AES-GCM), `permissions` (capability matrix), `scope` (row-level filters), `audit_events` (session hook), `events` (Redis Streams SSE fan-out), `idempotency`, `errors`, `logging` (structlog JSON + trace id), `context`.
 
 ## Data
-Migrations `alembic/versions` (0001 reference schema, 0002 integrity constraints + views, 0003 identity/audit/settings, 0004 admin core, 0005 docks, 0006 booking engine, 0007 carrier portal, 0008 notifications, 0009 coordinator desk). Seed: `scripts/seed_reference.py` (SQLite snapshot), `scripts/seed_demo_users.py` (one demo user per role).
+Migrations `alembic/versions` (0001 reference schema, 0002 integrity constraints + views, 0003 identity/audit/settings, 0004 admin core, 0005 docks, 0006 booking engine, 0007 carrier portal, 0008 notifications, 0009 coordinator desk, 0010-0011 AI platform). Seed: `scripts/seed_reference.py` (SQLite snapshot), `scripts/seed_demo_users.py` (one demo user per role).
 
 ## Tests
-`pytest` runs against a throwaway `setuhaul_test` database migrated from scratch: 393 tests (permission matrix cell-by-cell, auth/lockout/CSRF/rotation, scope isolation, audit, SSE isolation).
+`pytest` runs against a throwaway `setuhaul_test` database migrated from scratch: 471 tests (permission matrix cell-by-cell, auth/lockout/CSRF/rotation, scope isolation, audit, SSE isolation).

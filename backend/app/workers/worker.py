@@ -33,6 +33,17 @@ async def outbox_job(ctx: dict) -> dict:
         return {"sent": res.sent, "failed": res.failed, "notifications": res.notifications}
 
 
+async def ai_log_retention_job(ctx: dict) -> dict:
+    """Deletes AI usage logs older than system_settings.ai_log_retention_days. Idempotent."""
+    from app.core.db import async_session_factory
+    from app.modules.ai import usage
+
+    async with async_session_factory() as db:
+        n = await usage.delete_old_logs(db)
+        await db.commit()
+        return {"deleted": n}
+
+
 async def startup(ctx: dict) -> None:
     pass
 
@@ -42,9 +53,10 @@ async def shutdown(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions = [sweep_job, outbox_job]
+    functions = [sweep_job, outbox_job, ai_log_retention_job]
     cron_jobs = [cron(sweep_job, second={0}, run_at_startup=False),
-                 cron(outbox_job, second={0, 10, 20, 30, 40, 50}, run_at_startup=False)]
+                 cron(outbox_job, second={0, 10, 20, 30, 40, 50}, run_at_startup=False),
+                 cron(ai_log_retention_job, hour={3}, minute={15}, second={0}, run_at_startup=False)]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

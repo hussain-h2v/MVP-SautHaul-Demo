@@ -28,3 +28,19 @@ async def latest_driver_message(db, thread_id):
     return (await db.execute(select(ChatMessage).where(ChatMessage.thread_id == thread_id, ChatMessage.sender_type == "DRIVER",
                                                        ChatMessage.is_duplicate.is_(False))
                              .order_by(ChatMessage.message_ts.desc()).limit(1))).scalar_one_or_none()
+
+
+async def driver_messages_for_thread_codes(db, codes: list[str]) -> dict[str, list[tuple[str, str]]]:
+    """thread code -> [(text, thread_intent)] of non-duplicate DRIVER messages in time order (used to seed the AI golden set)."""
+    from sqlalchemy import select
+
+    from app.modules.whatsapp.models import ChatMessage, ChatThread
+
+    rows = await db.execute(
+        select(ChatThread.code, ChatMessage.message_text, ChatThread.thread_intent).join(ChatMessage, ChatMessage.thread_id == ChatThread.id)
+        .where(ChatThread.code.in_(codes), ChatMessage.sender_type == "DRIVER", ChatMessage.is_duplicate.is_(False))
+        .order_by(ChatThread.code, ChatMessage.message_ts, ChatMessage.code))
+    out: dict[str, list[tuple[str, str]]] = {}
+    for code, text, intent in rows.all():
+        out.setdefault(code, []).append((text, intent))
+    return out

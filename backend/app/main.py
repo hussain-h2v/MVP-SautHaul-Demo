@@ -129,6 +129,12 @@ for _desk in (desk_threads_router, desk_board_router, desk_handover_router, desk
 from app.modules.coordinator.inbox_router import router as coordinator_inbox_router  # noqa: E402
 
 api.include_router(coordinator_inbox_router)
+from app.modules.ai.admin_ops_router import router as ai_ops_router  # noqa: E402
+from app.modules.ai.admin_router import router as ai_admin_router  # noqa: E402
+from app.modules.ai.evals import router as ai_evals_router  # noqa: E402
+
+for _ai in (ai_admin_router, ai_ops_router, ai_evals_router):
+    api.include_router(_ai)
 app.include_router(api)
 
 

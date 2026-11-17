@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import date, time
 from typing import Annotated
 from uuid import UUID
 
@@ -107,3 +107,37 @@ class ContactPatch(BaseModel):
     email: EmailStr | None = None
     phone: str | None = None
     active_flag: bool | None = None
+
+
+class RuleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    rule_type: str
+    rule_value: str
+    description: str
+    effective_from: date | None
+    effective_to: date | None
+    active_flag: bool
+
+
+class RuleIn(BaseModel):
+    rule_type: str
+    rule_value: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=3, max_length=500)
+    effective_from: date
+    effective_to: date | None = None
+
+
+class RulePatch(BaseModel):
+    rule_value: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, min_length=3, max_length=500)
+    effective_from: date | None = None
+    effective_to: date | None = None
+    active_flag: bool | None = None
+
+
+class RuleTypeOut(BaseModel):
+    type: str
+    description: str
+    value_hint: str

@@ -78,3 +78,17 @@ async def active_counts_by_driver(db: AsyncSession, ids: list[UUID]) -> dict[UUI
     rows = await db.execute(select(Shipment.driver_id, func.count()).where(
         Shipment.driver_id.in_(ids), Shipment.current_status.in_(ACTIVE)).group_by(Shipment.driver_id))
     return {d: n for d, n in rows.all()}
+
+
+async def get_many(db: AsyncSession, ids: list[UUID]) -> dict[UUID, Shipment]:
+    if not ids:
+        return {}
+    rows = (await db.execute(select(Shipment).where(Shipment.id.in_(ids)))).scalars().all()
+    return {s.id: s for s in rows}
+
+
+async def inbound_for_facility(db: AsyncSession, facility_id: UUID) -> list[Shipment]:
+    """Trucks on the way: assigned to a driver, not finished or cancelled."""
+    return list((await db.execute(select(Shipment).where(
+        Shipment.destination_facility_id == facility_id, Shipment.driver_id.is_not(None),
+        Shipment.current_status.notin_(("COMPLETED", "CANCELLED"))).order_by(Shipment.code))).scalars().all())

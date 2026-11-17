@@ -91,3 +91,14 @@ def require(capability: str, level: str = "R"):
         return principal
 
     return dep
+
+
+def require_any(*grants: tuple[str, str]):
+    """Allow if the principal holds at least one of the (capability, level) grants."""
+
+    async def dep(principal: Principal = Depends(get_principal)) -> Principal:
+        if not any(principal.can(c, lv) for c, lv in grants):
+            raise ForbiddenError("Not permitted")
+        return principal
+
+    return dep

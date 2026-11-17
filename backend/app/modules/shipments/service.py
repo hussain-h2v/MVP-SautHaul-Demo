@@ -268,3 +268,44 @@ async def timeline(db: AsyncSession, p: Principal, shipment_id: UUID) -> Timelin
                for t in await whatsapp_service.threads_for_shipment(db, s.id)]
     ev.sort(key=lambda e: e.ts)
     return Timeline(events=ev, threads=threads)
+
+
+async def summaries(db: AsyncSession, ids: list[UUID]) -> dict[UUID, dict]:
+    """Light read model for other modules (schedule grid, affected-booking lists). No scope filter:
+    callers must already have scoped the slot/appointment the shipment hangs off."""
+    from sqlalchemy import select
+
+    if not ids:
+        return {}
+    rows = (await db.execute(select(Shipment).where(Shipment.id.in_(ids)))).scalars().all()
+    from app.modules.carriers import service as carriers_service
+    from app.modules.drivers import service as drivers_service
+
+    carriers = await carriers_service.names(db, list({r.carrier_id for r in rows if r.carrier_id}))
+    drivers = await drivers_service.names(db, list({r.driver_id for r in rows if r.driver_id}))
+    return {
+        r.id: {"code": r.code, "carrier_name": carriers.get(r.carrier_id), "driver_name": drivers.get(r.driver_id),
+               "priority_code": r.priority_code, "current_status": r.current_status, "vehicle_id": r.vehicle_id,
+               "driver_id": r.driver_id, "load_weight_kg": r.load_weight_kg, "required_dock_type": r.required_dock_type,
+               "expected_unload_min": r.expected_unload_min, "customer_name": r.customer_name,
+               "product_category": r.product_category}
+        for r in rows
+    }
+
+
+async def get_scoped(db: AsyncSession, p: Principal, shipment_id: UUID) -> Shipment:
+    return await _get(db, p, shipment_id)
+
+
+async def get_many(db: AsyncSession, ids: list[UUID]) -> dict[UUID, Shipment]:
+    return await repository.get_many(db, ids)
+
+
+async def inbound_for_facility(db: AsyncSession, facility_id: UUID) -> list[Shipment]:
+    return await repository.inbound_for_facility(db, facility_id)
+
+
+async def set_status(db: AsyncSession, shipment_id: UUID, status: str) -> None:
+    s = await db.get(Shipment, shipment_id)
+    if s is not None:
+        s.current_status = status

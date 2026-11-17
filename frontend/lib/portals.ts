@@ -39,8 +39,15 @@ export const portals: Portal[] = [
     nav: [
       { href: "/facility", labelKey: "nav.home" },
       { href: "/facility/schedule", labelKey: "nav.schedule", capability: "day_schedule" },
+      { href: "/facility/pending", labelKey: "nav.pending", capability: "day_schedule" },
       { href: "/facility/docks", labelKey: "nav.docks", capability: "docks_slots_rules" },
+      { href: "/facility/slots", labelKey: "nav.slots", capability: "docks_slots_rules" },
+      { href: "/facility/events", labelKey: "nav.events", capability: "docks_slots_rules" },
+      { href: "/facility/rules", labelKey: "nav.rules", capability: "docks_slots_rules" },
+      { href: "/facility/inbound", labelKey: "nav.inbound", capability: "day_schedule" },
       { href: "/facility/yard", labelKey: "nav.yard", capability: "day_schedule" },
+      { href: "/facility/contacts", labelKey: "nav.contacts", capability: "docks_slots_rules" },
+      { href: "/facility/reports", labelKey: "nav.reports", capability: "analytics" },
     ],
   },
   {

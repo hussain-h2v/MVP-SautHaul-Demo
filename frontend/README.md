@@ -18,9 +18,7 @@ Demo logins (password `SetuHaul-Demo-2026`): `admin@`, `planner@`, `coordinator@
 | | AI management (providers, keys, models, routes, prompts, evals, usage, budgets, logs, kill switch) | M7 |
 | | WhatsApp management + simulator | M8 |
 | | Audit log, System settings, System health, Reports | M2/M10 |
-| **Facility** `/facility` | Facility selector + home, Day schedule grid (live, drag to move), Pending confirmations | M3 |
-| | Docks, Slot generator/manager, Dock events, Facility rules | M3 |
-| | Inbound trucks, Yard and gate, Contacts, Insights, Reports | M3/M9 |
+| **Facility** `/facility` | Home, Day schedule grid (live), Pending confirmations, Docks, Slots (generate/block/copy), Dock events, Rules, Inbound trucks, Yard and gate, Contacts, Reports | built (M3); grid checked in browser; drag-move M4 |
 | **Coordinator** `/coordinator` | Live inbox, Request detail with ranked options, Approve/Suggest/Hold/Reject/Escalate | M6 |
 | | Competing requests, Holds, Escalations, Conversation viewer (takeover), Live board, Shift handover, Insights | M6/M9 |
 | **Carrier** `/carrier` | Dashboard, Incoming shipments (accept/decline), Assign driver + vehicle | M5 |

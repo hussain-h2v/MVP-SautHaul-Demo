@@ -14,14 +14,22 @@ import { useEventStream } from "@/lib/sse";
 import { roleHome } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function PortalShell({ portal, children }: { portal: Portal; children: React.ReactNode }) {
+export function PortalShell({
+  portal,
+  children,
+  headerExtra,
+}: {
+  portal: Portal;
+  children: React.ReactNode;
+  headerExtra?: React.ReactNode;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const { data: user, isLoading } = useMe();
   const [open, setOpen] = useState(false);
   const allowed = !!user && user.role === portal.role;
-  const stream = useEventStream([["notifications"], ["inbox"]], allowed);
+  const stream = useEventStream([["notifications"], ["inbox"], ["fac"]], allowed);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -109,7 +117,8 @@ export function PortalShell({ portal, children }: { portal: Portal; children: Re
             >
               <Menu className="size-5" aria-hidden="true" />
             </Button>
-            <span className="text-sm font-medium text-muted">{portal.audience}</span>
+            <span className="hidden text-sm font-medium text-muted lg:inline">{portal.audience}</span>
+            {headerExtra}
           </div>
           <div className="flex items-center gap-3">
             <span role="status" className="flex items-center gap-2 text-xs text-muted">

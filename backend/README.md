@@ -12,12 +12,13 @@ Run everything through Docker (see root `CLAUDE.md`). Status: done = tested, pla
 | `users` | Invite users, set role + facility/carrier scope, disable, force logout | done (M1) |
 | `settings` | System settings (TTLs, ranking weights, languages, grace) read/update with audit | done (M1) |
 | `audit` | Append-only audit log (DB trigger), automatic capture of every write with actor/IP/trace, filterable API | done (M1) |
-| `facilities` | CRUD, contacts (missing-email flag), CSV import (dry-run, atomic) + export, search/sort/filter | done (M2) |
+| `facilities` | Rules with effective dates + change history (M3), planner contact edits, CRUD, contacts (missing-email flag), CSV import (dry-run, atomic) + export, search/sort/filter | done (M2) |
 | `carriers` | CRUD, allowed vehicle types, fleet counts and shipment stats | done (M2) |
 | `drivers` | Read-only directory with filters, activity, CSV export (driver CRUD M5) | done (M2) |
 | `shipments` | Create/edit/cancel/offer, auto codes, timeline, CSV import/export, carrier never sees drafts | done (M2) |
 | `vehicles` | Vehicle types list (done); vehicles API M5 | partial |
-| `docks`, `slots` | Docks, dock events, slot generator, block/open | models done; API M3 |
+| `docks` | Dock CRUD/retire, dock events (breakdown/maintenance/capacity) with affected-booking preview, shared compatibility check | done (M3) |
+| `slots` | Slot generator (dry-run, overlap-safe), bulk block/open with affected bookings, copy day, day-schedule grid + slot detail | done (M3) |
 | `appointments` | Appointments, check-ins, yard/gate | models done; API M3/M4 |
 | `eta` | ETA history and effective-ETA precedence | models done; logic M4 |
 | `scheduling` | `find_options` feasibility + ranking (read-only) | M4 |

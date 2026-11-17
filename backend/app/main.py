@@ -10,9 +10,11 @@ from app.core.config import get_settings
 from app.core.context import Actor, current_actor, current_trace_id
 from app.core.errors import AppError, app_error_handler
 from app.core.logging import configure_logging, get_logger
+from app.modules.analytics.router import router as analytics_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.events_router import router as events_router
 from app.modules.auth.router import router as auth_router
+from app.modules.booking.router import router as booking_router
 from app.modules.carriers.router import router as carriers_router
 from app.modules.drivers.router import router as drivers_router
 from app.modules.facilities.router import router as facilities_router
@@ -94,8 +96,14 @@ async def idempotency(request: Request, call_next):
 
 api = APIRouter(prefix="/api/v1")
 for r in (auth_router, users_router, settings_router, audit_router, events_router, facilities_router,
-          carriers_router, drivers_router, shipments_router, vehicles_router):
+          carriers_router, drivers_router, shipments_router, vehicles_router,
+          booking_router, analytics_router):
     api.include_router(r)
+from app.modules.docks.router import router as docks_router  # noqa: E402
+from app.modules.slots.router import router as slots_router  # noqa: E402
+
+api.include_router(docks_router)
+api.include_router(slots_router)
 app.include_router(api)
 
 

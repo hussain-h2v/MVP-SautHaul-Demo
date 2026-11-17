@@ -115,3 +115,82 @@ async def summaries(db: AsyncSession, ids: list[UUID]) -> dict[UUID, tuple[str, 
 async def id_by_code(db: AsyncSession, code: str) -> tuple[UUID, time, str] | None:
     f = await repository.by_code(db, code.upper())
     return (f.id, f.open_time, f.timezone) if f and f.active_flag else None
+
+
+RULE_TYPES = {
+    "NO_SHOW_GRACE_MIN": ("Minutes after slot start before a truck can be marked no-show", "integer 0-240"),
+    "CHECKIN_EARLY_LIMIT_MIN": ("How many minutes early a truck may check in", "integer 0-480"),
+    "REEFER_DOCK_REQUIRED": ("Refrigerated loads must use a reefer dock", "TRUE or FALSE"),
+    "HEAVY_DOCK_REQUIRED_KG": ("Loads at or above this weight need the heavy dock", "integer kg"),
+    "LAST_NEW_START_TIME": ("Starts after this local time need planner approval", "HH:MM"),
+}
+
+
+def validate_rule_value(rule_type: str, value: str) -> None:
+    if rule_type not in RULE_TYPES:
+        raise ValidationAppError("Unknown rule type", {"allowed": sorted(RULE_TYPES)})
+    try:
+        if rule_type == "NO_SHOW_GRACE_MIN":
+            assert 0 <= int(value) <= 240
+        elif rule_type == "CHECKIN_EARLY_LIMIT_MIN":
+            assert 0 <= int(value) <= 480
+        elif rule_type == "HEAVY_DOCK_REQUIRED_KG":
+            assert int(value) > 0
+        elif rule_type == "REEFER_DOCK_REQUIRED":
+            assert value.upper() in ("TRUE", "FALSE")
+        elif rule_type == "LAST_NEW_START_TIME":
+            time.fromisoformat(value)
+    except (ValueError, AssertionError):
+        raise ValidationAppError(f"Invalid value for {rule_type}: expected {RULE_TYPES[rule_type][1]}") from None
+
+
+async def get_in_scope(db: AsyncSession, p: Principal, facility_id: UUID) -> Facility:
+    f = await repository.get(db, p, facility_id)
+    if f is None:
+        raise NotFoundError("Facility not found")
+    return f
+
+
+async def list_rules(db: AsyncSession, p: Principal, facility_id: UUID):
+    from sqlalchemy import select
+
+    from app.modules.facilities.models import FacilityRule
+
+    await get_in_scope(db, p, facility_id)
+    return (await db.execute(select(FacilityRule).where(FacilityRule.facility_id == facility_id)
+                             .order_by(FacilityRule.rule_type, FacilityRule.effective_from.desc()))).scalars().all()
+
+
+async def get_rule(db: AsyncSession, p: Principal, facility_id: UUID, rule_id: UUID):
+    from app.modules.facilities.models import FacilityRule
+
+    await get_in_scope(db, p, facility_id)
+    r = await db.get(FacilityRule, rule_id)
+    if r is None or r.facility_id != facility_id:
+        raise NotFoundError("Rule not found")
+    return r
+
+
+async def create_rule(db: AsyncSession, p: Principal, facility_id: UUID, body):
+    from app.modules.facilities.models import FacilityRule
+
+    await get_in_scope(db, p, facility_id)
+    validate_rule_value(body.rule_type, body.rule_value)
+    if body.effective_to and body.effective_to < body.effective_from:
+        raise ValidationAppError("effective_to must not be before effective_from")
+    r = FacilityRule(facility_id=facility_id, **body.model_dump())
+    db.add(r)
+    await db.flush()
+    return r
+
+
+async def update_rule(db: AsyncSession, p: Principal, facility_id: UUID, rule_id: UUID, body):
+    r = await get_rule(db, p, facility_id, rule_id)
+    data = body.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(r, k, v)
+    if "rule_value" in data:
+        validate_rule_value(r.rule_type, r.rule_value)
+    if r.effective_to and r.effective_from and r.effective_to < r.effective_from:
+        raise ValidationAppError("effective_to must not be before effective_from")
+    return r

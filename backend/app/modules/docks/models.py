@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, BusinessCoded, Timestamped, UUIDPK, Versioned
@@ -28,6 +29,8 @@ class Dock(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     supports_refrigerated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     max_vehicle_weight_kg: Mapped[int] = mapped_column(Integer, nullable=False)
     dock_status: Mapped[str] = mapped_column(String(16), default="ACTIVE", nullable=False)
+    compatible_vehicle_type_codes: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500))
 
 
 class DockStatusEvent(Base, UUIDPK, Timestamped, Versioned):

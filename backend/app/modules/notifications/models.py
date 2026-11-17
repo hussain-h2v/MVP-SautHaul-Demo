@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -51,3 +51,31 @@ class OutboxEvent(Base, UUIDPK, Timestamped, Versioned):
     status: Mapped[str] = mapped_column(String(10), default="pending", nullable=False, index=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Notification(Base, UUIDPK, Timestamped, Versioned):
+    """In-app notification. Addressed to one user, or to a role optionally narrowed to a facility and/or carrier;
+    read state is per user (notification_reads) so one person reading it never hides it from a colleague."""
+
+    __tablename__ = "notifications"
+    __table_args__ = (
+        CheckConstraint("recipient_user_id IS NOT NULL OR recipient_role IS NOT NULL", name="ck_notification_recipient"),
+    )
+
+    recipient_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    recipient_role: Mapped[str | None] = mapped_column(String(24), index=True)
+    facility_id: Mapped[UUID | None] = mapped_column(ForeignKey("facilities.id"), index=True)
+    carrier_id: Mapped[UUID | None] = mapped_column(ForeignKey("carriers.id"), index=True)
+    type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    body: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class NotificationRead(Base, UUIDPK, Timestamped):
+    __tablename__ = "notification_reads"
+    __table_args__ = (UniqueConstraint("notification_id", "user_id", name="uq_notification_read"),)
+
+    notification_id: Mapped[UUID] = mapped_column(ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

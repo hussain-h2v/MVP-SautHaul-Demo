@@ -13,6 +13,11 @@ export const SSE_EVENT_TYPES = [
   "appointment.changed",
   "yard.changed",
   "dock.event",
+  "notification.created",
+  "shipment.assigned",
+  "shipment.reassigned",
+  "shipment.responded",
+  "slot.changed",
 ] as const;
 
 /** Subscribes to the scoped SSE stream; any event invalidates the given query keys. */

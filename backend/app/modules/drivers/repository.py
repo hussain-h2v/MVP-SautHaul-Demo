@@ -46,3 +46,28 @@ async def counts_by_carrier(db: AsyncSession, ids: list[UUID]) -> dict[UUID, int
 async def names(db: AsyncSession, ids: list[UUID]) -> dict[UUID, str]:
     rows = await db.execute(select(Driver.id, Driver.driver_name).where(Driver.id.in_(ids)))
     return {i: n for i, n in rows.all()}
+
+
+async def get(db: AsyncSession, p: Principal, driver_id: UUID) -> Driver | None:
+    stmt = scope_by_carrier(select(Driver).where(Driver.id == driver_id), Driver.carrier_id, p)
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def by_phone(db: AsyncSession, phone: str) -> Driver | None:
+    return (await db.execute(select(Driver).where(Driver.phone == phone))).scalar_one_or_none()
+
+
+async def by_licence(db: AsyncSession, licence: str) -> Driver | None:
+    return (await db.execute(select(Driver).where(Driver.licence_number == licence))).scalar_one_or_none()
+
+
+async def by_whatsapp(db: AsyncSession, number: str) -> Driver | None:
+    return (await db.execute(select(Driver).where(Driver.whatsapp_number == number))).scalar_one_or_none()
+
+
+async def next_code(db: AsyncSession) -> str:
+    from sqlalchemy import Integer, cast
+
+    n = (await db.execute(select(func.max(cast(func.substr(Driver.code, 4), Integer))).where(
+        Driver.code.op("~")("^DRV[0-9]+$")))).scalar()
+    return f"DRV{(n or 0) + 1:03d}"

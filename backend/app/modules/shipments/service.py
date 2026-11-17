@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import events
+from app.core.outbox import emit
 from app.core.errors import ConflictError, NotFoundError, ValidationAppError
 from app.core.listing import ImportError_, ImportResult, read_csv
 from app.modules.appointments import service as appointments_service
@@ -17,7 +18,8 @@ from app.modules.eta import service as eta_service
 from app.modules.shipments import repository
 from app.modules.shipments.models import Shipment
 from app.modules.shipments.schemas import (
-    CancelIn, OfferIn, ShipmentIn, ShipmentOut, ShipmentPatch, ThreadRef, Timeline, TimelineEvent,
+    AssignmentCheck, CancelIn, Issue, OfferIn, RespondIn, ShipmentIn, ShipmentOut, ShipmentPatch, ThreadRef, Timeline,
+    TimelineEvent,
 )
 from app.modules.slots import service as slots_service
 from app.modules.whatsapp import service as whatsapp_service
@@ -163,6 +165,7 @@ async def offer(db: AsyncSession, p: Principal, shipment_id: UUID, body: OfferIn
     if carrier is None or not carrier.active_flag:
         raise ValidationAppError("Carrier not found or inactive")
     s.carrier_id, s.offer_status, s.offer_decline_reason = carrier.id, "offered", None
+    emit(db, "shipment.offered", {"shipment_id": s.id, "carrier_id": carrier.id, "code": s.code})
     return s
 
 
@@ -319,3 +322,110 @@ async def set_latest_eta(db: AsyncSession, shipment_id: UUID, ts: datetime) -> N
 
 async def visible_to(db: AsyncSession, p: Principal, shipment_id: UUID) -> bool:
     return await repository.get(db, p, shipment_id) is not None
+
+
+
+async def active_counts_by_vehicle(db: AsyncSession, ids: list[UUID]) -> dict[UUID, int]:
+    return await repository.active_counts_by_vehicle(db, ids)
+
+
+async def history_for_driver(db: AsyncSession, driver_id: UUID) -> list[dict]:
+    from app.modules.facilities import service as facilities_service
+
+    rows = await repository.history_for_driver(db, driver_id)
+    fac = await facilities_service.summaries(db, list({s.destination_facility_id for s in rows}))
+    return [{"code": s.code, "current_status": s.current_status, "original_eta_ts": s.original_eta_ts,
+             "facility_code": fac.get(s.destination_facility_id, ("", ""))[0]} for s in rows]
+
+
+# ---------------------------------------------------------------- carrier actions: respond, assign, reassign
+def _own_carrier_shipment(p: Principal, s: Shipment) -> None:
+    if p.carrier_id is None or s.carrier_id != p.carrier_id:
+        raise NotFoundError("Shipment not found")
+
+
+async def respond(db: AsyncSession, p: Principal, shipment_id: UUID, body: RespondIn) -> Shipment:
+    s = await _get(db, p, shipment_id)
+    _own_carrier_shipment(p, s)
+    if s.offer_status != "offered":
+        raise ConflictError("NOT_OFFERED", f"This offer is already {s.offer_status}")
+    if body.accept:
+        s.offer_status, s.offer_decline_reason = "accepted", None
+    else:
+        s.offer_status, s.offer_decline_reason = "declined", body.reason.strip()
+    emit(db, "shipment.offer_responded", {"shipment_id": s.id, "carrier_id": s.carrier_id, "accepted": body.accept,
+                                          "reason": s.offer_decline_reason})
+    return s
+
+
+async def assignment_check(db: AsyncSession, p: Principal, shipment_id: UUID, driver_id: UUID,
+                           vehicle_id: UUID) -> tuple[AssignmentCheck, Shipment]:
+    """Blocks incompatible vehicles; warns (does not block) about a busy or unverified driver."""
+    from app.modules.carriers import repository as carriers_repo
+    from app.modules.drivers import service as drivers_service
+    from app.modules.vehicles import service as vehicles_service
+
+    s = await _get(db, p, shipment_id)
+    _own_carrier_shipment(p, s)
+    driver = await drivers_service.get_scoped(db, p, driver_id)
+    vehicle, vtype = await vehicles_service.get_scoped(db, p, vehicle_id)
+    problems: list[Issue] = []
+    warnings: list[Issue] = []
+    if driver.driver_status != "ACTIVE":
+        problems.append(Issue(code="DRIVER_INACTIVE", message=f"{driver.driver_name} is {driver.driver_status.lower()}"))
+    if not vehicle.active_flag:
+        problems.append(Issue(code="VEHICLE_INACTIVE", message=f"{vehicle.registration_number} is retired"))
+    if (s.temperature_control_required or s.required_dock_type == "REEFER") and not vehicle.refrigeration_capable:
+        problems.append(Issue(code="VEHICLE_NOT_REFRIGERATED", message="This load is temperature controlled; the vehicle has no refrigeration"))
+    if s.required_dock_type == "HEAVY" and not vehicle.heavy_capable:
+        problems.append(Issue(code="VEHICLE_NOT_HEAVY", message="This load needs the heavy dock; the vehicle is not heavy-capable"))
+    if s.load_weight_kg > vehicle.capacity_kg:
+        problems.append(Issue(code="LOAD_EXCEEDS_CAPACITY", message=f"Load is {s.load_weight_kg} kg; the vehicle carries {vehicle.capacity_kg} kg"))
+    carrier = await carriers_repo.get(db, p, s.carrier_id)
+    allowed = list(carrier.allowed_vehicle_type_codes or []) if carrier else []
+    if allowed and vtype.code not in allowed:
+        problems.append(Issue(code="VEHICLE_TYPE_NOT_ALLOWED", message=f"Vehicle type {vtype.code} is not allowed for your carrier"))
+    busy = await repository.active_counts_by_driver(db, [driver.id])
+    on_other = busy.get(driver.id, 0) - (1 if s.driver_id == driver.id else 0)
+    if on_other > 0:
+        warnings.append(Issue(code="DRIVER_ON_ANOTHER_SHIPMENT", message=f"{driver.driver_name} is already on {on_other} active shipment(s)"))
+    vbusy = await repository.active_counts_by_vehicle(db, [vehicle.id])
+    if vbusy.get(vehicle.id, 0) - (1 if s.vehicle_id == vehicle.id else 0) > 0:
+        warnings.append(Issue(code="VEHICLE_ON_ANOTHER_SHIPMENT", message=f"{vehicle.registration_number} is already on an active shipment"))
+    if driver.verified_at is None:
+        warnings.append(Issue(code="DRIVER_NOT_VERIFIED", message="No verified WhatsApp number: the driver cannot get slot messages"))
+    elif not driver.whatsapp_opt_in:
+        warnings.append(Issue(code="DRIVER_OPTED_OUT", message="The driver opted out of WhatsApp messages"))
+    return AssignmentCheck(problems=problems, warnings=warnings, driver_language=driver.preferred_language,
+                           driver_verified=driver.verified_at is not None), s
+
+
+async def assign(db: AsyncSession, p: Principal, shipment_id: UUID, driver_id: UUID, vehicle_id: UUID):
+    check, s = await assignment_check(db, p, shipment_id, driver_id, vehicle_id)
+    if s.offer_status != "accepted":
+        raise ConflictError("NOT_ACCEPTED", "Accept the offer before assigning a driver")
+    if s.current_status not in ("PLANNED", "ASSIGNED"):
+        raise ConflictError("NOT_ASSIGNABLE", f"A {s.current_status} shipment cannot be (re)assigned here")
+    if s.driver_id is not None:
+        raise ConflictError("ALREADY_ASSIGNED", "A driver is already assigned; use reassign with a reason")
+    if check.problems:
+        raise ValidationAppError("This driver or vehicle cannot take the load", {"problems": [i.model_dump() for i in check.problems]})
+    s.driver_id, s.vehicle_id, s.current_status = driver_id, vehicle_id, "ASSIGNED"
+    emit(db, "shipment.assigned", {"shipment_id": s.id, "driver_id": driver_id, "vehicle_id": vehicle_id, "carrier_id": s.carrier_id})
+    return s, check
+
+
+async def reassign(db: AsyncSession, p: Principal, shipment_id: UUID, driver_id: UUID, vehicle_id: UUID, reason: str):
+    check, s = await assignment_check(db, p, shipment_id, driver_id, vehicle_id)
+    if s.driver_id is None:
+        raise ConflictError("NOT_ASSIGNED", "Nothing to reassign yet; assign a driver first")
+    if s.current_status in ("COMPLETED", "CANCELLED", "IN_DOCK"):
+        raise ConflictError("NOT_ASSIGNABLE", f"A {s.current_status} shipment cannot be reassigned")
+    if check.problems:
+        raise ValidationAppError("This driver or vehicle cannot take the load", {"problems": [i.model_dump() for i in check.problems]})
+    old_driver, old_vehicle = s.driver_id, s.vehicle_id
+    s.driver_id, s.vehicle_id = driver_id, vehicle_id
+    emit(db, "shipment.reassigned", {"shipment_id": s.id, "carrier_id": s.carrier_id, "reason": reason,
+                                     "old_driver_id": old_driver, "new_driver_id": driver_id,
+                                     "old_vehicle_id": old_vehicle, "new_vehicle_id": vehicle_id})
+    return s, check

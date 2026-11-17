@@ -119,3 +119,41 @@ class ThreadRef(BaseModel):
 class Timeline(BaseModel):
     events: list[TimelineEvent]
     threads: list[ThreadRef]
+
+
+class RespondIn(BaseModel):
+    accept: bool
+    reason: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _v(self):
+        if not self.accept and not (self.reason and len(self.reason.strip()) >= 3):
+            raise ValueError("A reason is required when declining an offer")
+        return self
+
+
+class AssignIn(BaseModel):
+    driver_id: UUID
+    vehicle_id: UUID
+
+
+class ReassignIn(AssignIn):
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class Issue(BaseModel):
+    code: str
+    message: str
+
+
+class AssignmentCheck(BaseModel):
+    problems: list[Issue]
+    warnings: list[Issue]
+    driver_language: str | None = None
+    driver_verified: bool = False
+
+
+class AssignOut(BaseModel):
+    shipment: ShipmentOut
+    warnings: list[Issue]
+    driver_language: str | None = None

@@ -33,4 +33,5 @@ class Vehicle(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     registration_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
     capacity_kg: Mapped[int] = mapped_column(Integer, nullable=False)
     refrigeration_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    heavy_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     active_flag: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

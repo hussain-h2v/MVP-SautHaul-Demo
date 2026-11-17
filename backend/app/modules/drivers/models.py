@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, BusinessCoded, Timestamped, UUIDPK, Versioned
@@ -29,3 +29,6 @@ class Driver(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     preferred_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     whatsapp_opt_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_code_hash: Mapped[str | None] = mapped_column(String(64))
+    verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from app.core.context import current_actor, current_trace_id
 
 SENSITIVE = {"password_hash", "totp_secret", "refresh_hash", "token_hash", "encrypted_key"}
+# High-volume projection tables: their origin (outbox_events, state changes) is already audited.
+IGNORED_TABLES = {"notifications", "notification_reads"}
 _installed = False
 
 
@@ -41,7 +43,7 @@ def install() -> None:
     def before_flush(session, ctx, instances):
         pending = session.info.setdefault("audit_pending", [])
         for obj in list(session.dirty):
-            if isinstance(obj, AuditLog) or not session.is_modified(obj):
+            if isinstance(obj, AuditLog) or obj.__tablename__ in IGNORED_TABLES or not session.is_modified(obj):
                 continue
             st = inspect(obj)
             before, after = {}, {}
@@ -54,10 +56,10 @@ def install() -> None:
             if after:
                 pending.append(("update", obj, before, after))
         for obj in list(session.deleted):
-            if not isinstance(obj, AuditLog):
+            if not isinstance(obj, AuditLog) and obj.__tablename__ not in IGNORED_TABLES:
                 pending.append(("delete", obj, _snapshot(obj), None))
         for obj in list(session.new):
-            if not isinstance(obj, AuditLog):
+            if not isinstance(obj, AuditLog) and obj.__tablename__ not in IGNORED_TABLES:
                 pending.append(("insert", obj, None, None))
 
     @event.listens_for(Session, "after_flush_postexec")

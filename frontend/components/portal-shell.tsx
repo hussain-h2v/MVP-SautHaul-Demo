@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 import { UserMenu } from "@/components/user-menu";
 import { Skeleton } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export function PortalShell({
   const { data: user, isLoading } = useMe();
   const [open, setOpen] = useState(false);
   const allowed = !!user && user.role === portal.role;
-  const stream = useEventStream([["notifications"], ["inbox"], ["fac"]], allowed);
+  const stream = useEventStream([["notifications"], ["inbox"], ["fac"], ["carrier"], ["list"], ["detail"]], allowed);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -125,6 +126,7 @@ export function PortalShell({
               <span className={cn("size-2 rounded-full", dot)} aria-hidden="true" />
               {t(`common.${stream}`)}
             </span>
+            <NotificationBell slug={portal.slug} />
             <UserMenu user={user} />
           </div>
         </header>

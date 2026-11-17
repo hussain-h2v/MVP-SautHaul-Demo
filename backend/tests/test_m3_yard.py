@@ -23,6 +23,12 @@ from tests.conftest import login
 IST = ZoneInfo("Asia/Kolkata")
 
 
+def daytime(days: int = 2) -> datetime:
+    """10:00 IST on a future day, so tests never depend on the wall-clock hour (operating hours are 06:00-22:00)."""
+    d = (datetime.now(UTC) + timedelta(days=days)).astimezone(ZoneInfo("Asia/Kolkata")).date()
+    return datetime(d.year, d.month, d.day, 10, 0, tzinfo=ZoneInfo("Asia/Kolkata")).astimezone(UTC)
+
+
 def now() -> datetime:
     return datetime.now(UTC)
 
@@ -147,7 +153,7 @@ async def test_pending_list_reason_scope_and_permissions(client, world):
 
 async def test_confirm_and_reject_rules(client, world):
     da, dbk = await mk_dock(world.facility_a, "D1"), await mk_dock(world.facility_b, "D1")
-    t = now() + timedelta(days=2)
+    t = daytime(2)
     a1 = await mk_appt(world.shipment_a, await mk_slot(world.facility_a, da, t), "PENDING_CONFIRMATION")
     s2 = await mk_ship(world, tag="C2")
     slot2 = await mk_slot(world.facility_a, da, t + timedelta(hours=2))
@@ -181,13 +187,14 @@ async def test_confirm_and_reject_rules(client, world):
 
 async def test_confirm_publishes_schedule_event(client, world):
     da = await mk_dock(world.facility_a, "D1")
-    a1 = await mk_appt(world.shipment_a, await mk_slot(world.facility_a, da, now() + timedelta(days=2)),
+    a1 = await mk_appt(world.shipment_a, await mk_slot(world.facility_a, da, daytime(2)),
                        "PENDING_CONFIRMATION")
     redis = get_redis()
     try:
         await redis.delete(events.STREAM)
         await as_(client, "facility_planner")
-        assert (await client.post(f"/api/v1/appointments/{a1.id}/confirm")).status_code == 200
+        _r = await client.post(f"/api/v1/appointments/{a1.id}/confirm")
+        assert _r.status_code == 200, _r.text
         entries = await redis.xrange(events.STREAM)
         assert entries and entries[-1][1]["type"] == "schedule.changed"
         assert entries[-1][1]["facility_id"] == str(world.facility_a.id)

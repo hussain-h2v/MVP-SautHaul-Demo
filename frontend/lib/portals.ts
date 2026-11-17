@@ -74,6 +74,11 @@ export const portals: Portal[] = [
       { href: "/carrier/shipments", labelKey: "nav.incoming", capability: "shipment_details" },
       { href: "/carrier/drivers", labelKey: "nav.drivers", capability: "drivers_vehicles" },
       { href: "/carrier/vehicles", labelKey: "nav.vehicles", capability: "drivers_vehicles" },
+      { href: "/carrier/tracker", labelKey: "nav.tracker", capability: "shipment_details" },
+      { href: "/carrier/slot-changes", labelKey: "nav.slotChanges", capability: "day_schedule" },
+      { href: "/carrier/notifications", labelKey: "nav.notifications" },
+      { href: "/carrier/insights", labelKey: "nav.insights", capability: "ai_insights" },
+      { href: "/carrier/reports", labelKey: "nav.reports", capability: "analytics" },
     ],
   },
 ];

@@ -109,6 +109,16 @@ api.include_router(booking_engine_router)
 api.include_router(scheduling_router)
 api.include_router(docks_router)
 api.include_router(slots_router)
+from app.modules.vehicles.router import vehicles_router as fleet_router  # noqa: E402
+
+api.include_router(fleet_router)
+from app.modules.carriers.portal_router import reports_router as carrier_reports_router  # noqa: E402
+from app.modules.carriers.portal_router import router as carrier_portal_router  # noqa: E402
+from app.modules.notifications.router import router as notifications_router  # noqa: E402
+
+api.include_router(carrier_portal_router)
+api.include_router(carrier_reports_router)
+api.include_router(notifications_router)
 app.include_router(api)
 
 

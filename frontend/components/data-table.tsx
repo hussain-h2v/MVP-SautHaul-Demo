@@ -48,6 +48,8 @@ interface Props<T> {
   /** Server mode: GET `${path}?limit&offset&q&sort&filters`. Enables CSV export at `${path}/export.csv`. */
   path?: string;
   exportable?: boolean;
+  /** Filter values applied on first render (e.g. from a dashboard link's query string). */
+  initialFilters?: Record<string, string>;
   /** Client mode: all rows supplied, filtered/sorted/paged locally. */
   rows?: T[];
   loading?: boolean;
@@ -83,7 +85,7 @@ export function DataTable<T>(props: Props<T>) {
   const [qInput, setQInput] = React.useState("");
   const q = useDebounced(qInput, 300);
   const [sort, setSort] = React.useState(defaultSort);
-  const [filterVals, setFilterVals] = React.useState<Record<string, string>>({});
+  const [filterVals, setFilterVals] = React.useState<Record<string, string>>(props.initialFilters ?? {});
   const [offset, setOffset] = React.useState(0);
   const [limit, setLimit] = React.useState(25);
   const [views, setViews] = React.useState<SavedView[]>([]);

@@ -92,3 +92,17 @@ async def inbound_for_facility(db: AsyncSession, facility_id: UUID) -> list[Ship
     return list((await db.execute(select(Shipment).where(
         Shipment.destination_facility_id == facility_id, Shipment.driver_id.is_not(None),
         Shipment.current_status.notin_(("COMPLETED", "CANCELLED"))).order_by(Shipment.code))).scalars().all())
+
+
+async def active_counts_by_vehicle(db: AsyncSession, ids: list[UUID]) -> dict[UUID, int]:
+    if not ids:
+        return {}
+    rows = await db.execute(select(Shipment.vehicle_id, func.count()).where(
+        Shipment.vehicle_id.in_(ids), Shipment.current_status.in_(ACTIVE)).group_by(Shipment.vehicle_id))
+    return {v: n for v, n in rows.all()}
+
+
+async def history_for_driver(db: AsyncSession, driver_id: UUID, limit: int = 20):
+    rows = await db.execute(select(Shipment).where(Shipment.driver_id == driver_id)
+                            .order_by(Shipment.original_eta_ts.desc()).limit(limit))
+    return rows.scalars().all()

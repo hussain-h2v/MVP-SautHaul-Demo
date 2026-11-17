@@ -19,6 +19,7 @@ from app.modules.facilities.router import router as facilities_router
 from app.modules.settings.router import router as settings_router
 from app.modules.shipments.router import router as shipments_router
 from app.modules.users.router import router as users_router
+from app.modules.vehicles.router import router as vehicles_router
 
 settings = get_settings()
 configure_logging(settings.debug)
@@ -60,9 +61,40 @@ async def trace_and_headers(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def idempotency(request: Request, call_next):
+    key = request.headers.get("idempotency-key")
+    if request.method not in ("POST", "PUT", "PATCH", "DELETE") or not key or not request.url.path.startswith("/api/"):
+        return await call_next(request)
+    import hashlib
+    import json
+
+    from fastapi import Response
+
+    from app.core.idempotency import cache_response, get_cached_response, get_redis
+
+    who = request.cookies.get("access_token", "")
+    cache_key = hashlib.sha256(f"{who}|{request.method}|{request.url.path}|{key}".encode()).hexdigest()
+    redis = get_redis()
+    try:
+        hit = await get_cached_response(redis, cache_key)
+        if hit:
+            return Response(hit["body"], status_code=hit["status_code"], media_type="application/json",
+                            headers={"Idempotent-Replay": "true"})
+        response = await call_next(request)
+        if 200 <= response.status_code < 300 and response.headers.get("content-type", "").startswith("application/json"):
+            body = b"".join([c async for c in response.body_iterator])
+            await cache_response(redis, cache_key, response.status_code, body.decode())
+            return Response(body, status_code=response.status_code, headers=dict(response.headers),
+                            media_type="application/json")
+        return response
+    finally:
+        await redis.aclose()
+
+
 api = APIRouter(prefix="/api/v1")
 for r in (auth_router, users_router, settings_router, audit_router, events_router, facilities_router,
-          carriers_router, drivers_router, shipments_router):
+          carriers_router, drivers_router, shipments_router, vehicles_router):
     api.include_router(r)
 app.include_router(api)
 

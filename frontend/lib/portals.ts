@@ -22,9 +22,12 @@ export const portals: Portal[] = [
       { href: "/admin", labelKey: "nav.dashboard", capability: "analytics" },
       { href: "/admin/facilities", labelKey: "nav.facilities", capability: "manage_master" },
       { href: "/admin/carriers", labelKey: "nav.carriers", capability: "manage_master" },
+      { href: "/admin/users", labelKey: "nav.users", capability: "manage_master" },
+      { href: "/admin/drivers", labelKey: "nav.drivers", capability: "drivers_vehicles" },
       { href: "/admin/shipments", labelKey: "nav.shipments", capability: "shipments_write" },
       { href: "/admin/ai", labelKey: "nav.ai", capability: "ai_management" },
       { href: "/admin/audit", labelKey: "nav.audit", capability: "audit_log" },
+      { href: "/admin/settings", labelKey: "nav.settings", capability: "system_settings" },
     ],
   },
   {

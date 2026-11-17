@@ -1,17 +1,35 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.listing import csv_response
 from app.modules.auth.deps import Principal, require
-from app.modules.drivers import service
+from app.modules.drivers import repository, service
 from app.modules.drivers.schemas import DriverPage
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
+read = require("drivers_vehicles", "R")
+CSV_FIELDS = ["code", "driver_name", "carrier_name", "phone", "whatsapp_number", "preferred_language",
+              "whatsapp_opt_in", "verified", "driver_status", "licence_number", "active_shipments", "last_activity"]
 
 
 @router.get("", response_model=DriverPage)
 async def list_drivers(
-    limit: int = Query(50, le=200), offset: int = 0,
-    p: Principal = Depends(require("drivers_vehicles", "R")), db: AsyncSession = Depends(get_db),
+    q: str | None = None, carrier_id: UUID | None = None, language: str | None = None,
+    opt_in: bool | None = None, verified: bool | None = None, sort: str | None = None,
+    limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+    p: Principal = Depends(read), db: AsyncSession = Depends(get_db),
 ):
-    return await service.list_drivers(db, p, limit, offset)
+    return await service.page(db, p, (q, carrier_id, language, opt_in, verified), sort, limit, offset)
+
+
+@router.get("/export.csv")
+async def export_drivers(
+    q: str | None = None, carrier_id: UUID | None = None, language: str | None = None,
+    opt_in: bool | None = None, verified: bool | None = None, sort: str | None = None,
+    p: Principal = Depends(read), db: AsyncSession = Depends(get_db),
+):
+    rows = await service.enrich(db, list(await repository.list_all(db, p, (q, carrier_id, language, opt_in, verified), sort)))
+    return csv_response("drivers.csv", CSV_FIELDS, [r.model_dump() for r in rows])

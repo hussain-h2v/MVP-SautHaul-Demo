@@ -51,7 +51,7 @@ export function PortalShell({ portal, children }: { portal: Portal; children: Re
       <p className="px-5 pb-2 text-xs font-medium uppercase tracking-wider text-muted">{t(`portals.${portal.slug}`)}</p>
       <nav aria-label="Primary" className="flex flex-col gap-1 px-3">
         {nav.map((item) => {
-          const active = pathname === item.href;
+          const active = pathname === item.href || (item.href.split("/").length > 2 && pathname.startsWith(`${item.href}/`));
           return (
             <Link
               key={item.href}

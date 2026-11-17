@@ -11,7 +11,7 @@ Build milestone by milestone (agreed with the user): each milestone is tested, c
   - [x] Next.js app builds with four portal shells
   - [ ] shadcn/ui, next-intl, TanStack Query, api-client generation (moved to Milestone 1)
 - [x] **1 Identity and shell** - auth (login, rotation, lockout, CSRF, invite), RBAC matrix + scope isolation, audit hook + append-only log, settings, SSE (Redis Streams), web shell (i18n en/hi, theme, guards). Deferred: TOTP, password-reset email, email delivery (invite token returned by API), OIDC, shadcn CLI components (hand-rolled primitives), generated OpenAPI client
-- [ ] 2 Admin core
+- [x] **2 Admin core** - facilities (+contacts, CSV import/export), carriers, drivers directory, shipments (create/edit/offer/cancel/timeline/CSV), audit + settings screens, Idempotency-Key support, 159 backend tests. Not browser-tested: create/edit forms, CSV dialogs, Hindi, dark mode
 - [ ] 3 Facility portal
 - [ ] 4 Scheduling and booking engine + INTEGRITY_PROOF
 - [ ] 5 Carrier portal

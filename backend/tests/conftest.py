@@ -124,7 +124,7 @@ async def world() -> World:
             s = Shipment(code=f"SHP-{tag}", order_reference=f"ORD-{tag}", carrier_id=car.id, driver_id=drv.id,
                          vehicle_id=veh.id, origin_name="Origin", origin_city="Delhi", destination_facility_id=fac.id,
                          customer_name="Cust", product_category="Goods", load_weight_kg=5000,
-                         planned_departure_ts=now, original_eta_ts=now, expected_unload_min=60, current_status="PLANNED")
+                         planned_departure_ts=now, original_eta_ts=now, expected_unload_min=60, current_status="ASSIGNED", offer_status="accepted")
             db.add(s)
             shipments.append(s)
         users = {

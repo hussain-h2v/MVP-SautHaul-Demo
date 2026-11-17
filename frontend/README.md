@@ -3,7 +3,7 @@
 Four role-based portals in one app, English + Hindi (next-intl, cookie locale), light/dark theme, accessible (WCAG AA goals), live updates over SSE. Talks to the backend through the `/api` rewrite (`API_INTERNAL_URL`, default `http://localhost:8000`).
 
 ```bash
-cd frontend && npm install --legacy-peer-deps && npm run dev     # http://localhost:3000
+cd frontend && npm install --legacy-peer-deps && npm run dev     # http://localhost:2000
 npm run lint && npx tsc --noEmit && npm test && npm run build
 ```
 Demo logins (password `SetuHaul-Demo-2026`): `admin@`, `planner@`, `coordinator@`, `carrier@` `setuhaul.demo`.
@@ -13,8 +13,8 @@ Demo logins (password `SetuHaul-Demo-2026`): `admin@`, `planner@`, `coordinator@
 | Area | Screens / features | Status |
 |---|---|---|
 | Shell | Login, role redirect, route guard, capability-based menus, user menu, language + theme switch, live-status dot (SSE), mobile sidebar, skip link | done (M1) |
-| **Admin** `/admin` | Network dashboard | M9 |
-| | Facilities, Carriers, Users and roles, Drivers directory, Shipments (+timeline, CSV) | M2 |
+| **Admin** `/admin` | Network dashboard (live totals; KPIs M9) | partial |
+| | Facilities, Carriers, Users and roles, Drivers directory, Shipments (+timeline, CSV import), Audit log, Settings | built (M2); list + shipment detail checked in browser |
 | | AI management (providers, keys, models, routes, prompts, evals, usage, budgets, logs, kill switch) | M7 |
 | | WhatsApp management + simulator | M8 |
 | | Audit log, System settings, System health, Reports | M2/M10 |

@@ -20,3 +20,8 @@ Product-behaviour decisions (what to collect, hold vs confirm, escalation, etc.)
 16. **Events**: SSE is backed by a Redis Stream (resume with Last-Event-ID); each event carries facility/carrier scope and is filtered per principal.
 17. **Hold TTL** default is 15 min per the platform spec (the prototype used 5).
 18. **Test hashing** uses cheap argon2 parameters when `ENV=test`.
+19. **Shipment creation** leaves carrier/driver/vehicle empty (columns made nullable) with `offer_status` draft -> offered -> accepted/declined; carrier users never see drafts. Default planned ETA = facility opening time on the requested date (next day if none).
+20. **Cancelling a shipment that holds an active appointment is blocked (409)** until the booking service (M4) can release the slot safely.
+21. **Idempotency-Key**: middleware replays 2xx JSON responses per (session, method, path, key) for 24h via Redis.
+22. **CSV import** is atomic (any bad row rejects the whole file) with a dry-run preview; exports neutralise spreadsheet formula injection.
+23. Frontend dev port is **2000** (user request); the API stays on 8000.

@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, BusinessCoded, Timestamped, UUIDPK, Versioned
@@ -20,3 +21,4 @@ class Carrier(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     contact_email: Mapped[str | None] = mapped_column(String(320))
     contact_phone: Mapped[str | None] = mapped_column(String(32))
     active_flag: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    allowed_vehicle_type_codes: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)

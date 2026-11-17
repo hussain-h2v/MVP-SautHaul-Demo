@@ -15,6 +15,7 @@ class Facility(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     )
 
     facility_name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str] = mapped_column(String(100), nullable=False)
     state: Mapped[str] = mapped_column(String(100), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="Asia/Kolkata", nullable=False)
@@ -23,6 +24,7 @@ class Facility(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     checkin_grace_min: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     default_unload_min: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     active_flag: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(1000))
 
 
 class FacilityContact(Base, UUIDPK, Timestamped, Versioned):

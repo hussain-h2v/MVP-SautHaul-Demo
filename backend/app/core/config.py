@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     whatsapp_phone_number_id: str = Field(default="", alias="WHATSAPP_PHONE_NUMBER_ID")
     whatsapp_verify_token: str = Field(default="", alias="WHATSAPP_VERIFY_TOKEN")
 
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"], alias="CORS_ORIGINS")
+    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:2000"], alias="CORS_ORIGINS")
 
     default_timezone: str = Field(default="Asia/Kolkata", alias="DEFAULT_TIMEZONE")
 

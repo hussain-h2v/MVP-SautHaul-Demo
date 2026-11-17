@@ -52,3 +52,11 @@ async def stream_for(redis: Redis, role: str, facility_ids: set[UUID], carrier_i
                 cursor = entry_id
                 if visible(role, facility_ids, carrier_id, f.get("facility_id", ""), f.get("carrier_id", "")):
                     yield f"id: {entry_id}\nevent: {f['type']}\ndata: {f['data']}\n\n"
+
+
+
+async def publish_inbox_changed(reason: str, **extra) -> None:
+    try:
+        await publish("inbox.changed", {"reason": reason, **extra})
+    except Exception:  # best effort: the write already committed
+        pass

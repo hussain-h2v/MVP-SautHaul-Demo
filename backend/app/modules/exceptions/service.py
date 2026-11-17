@@ -16,3 +16,22 @@ async def count_open_for_facility(db: AsyncSession, facility_id: UUID) -> int:
         .join(Shipment, Shipment.id == DriverException.shipment_id)
         .where(Shipment.destination_facility_id == facility_id, DriverException.exception_status.in_(OPEN_STATUSES))
     )).scalar_one()
+
+
+OPEN_STATUSES = ("OPEN", "NEEDS_INFORMATION", "SLOT_OPTIONS_SHARED", "WAITING_CONFIRMATION")
+
+
+async def get_exception(db, exception_id):
+    from app.modules.exceptions.models import DriverException
+
+    return await db.get(DriverException, exception_id)
+
+
+async def list_open(db, limit: int = 200):
+    from sqlalchemy import select
+
+    from app.modules.exceptions.models import DriverException
+
+    rows = await db.execute(select(DriverException).where(DriverException.exception_status.in_(OPEN_STATUSES))
+                            .order_by(DriverException.reported_at.desc()).limit(limit))
+    return list(rows.scalars().all())

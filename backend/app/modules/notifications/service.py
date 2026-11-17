@@ -178,3 +178,16 @@ async def mark_read(db: AsyncSession, p: Principal, notification_id: UUID) -> No
 
 async def read_all(db: AsyncSession, p: Principal) -> int:
     return await repository.mark_all_read(db, p)
+
+
+async def failed_operational_messages(db, limit: int = 100, within_days: int = 7):
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    from app.modules.notifications.models import OperationalMessage
+
+    rows = await db.execute(select(OperationalMessage).where(
+        OperationalMessage.delivery_status == "FAILED",
+        OperationalMessage.sent_at > datetime.now(UTC) - timedelta(days=within_days)).order_by(OperationalMessage.sent_at.desc()).limit(limit))
+    return list(rows.scalars().all())

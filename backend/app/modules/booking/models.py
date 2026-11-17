@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base, Timestamped, UUIDPK, Versioned
 
 HOLD_STATUSES = ("active", "converted", "expired", "released")
-REQUEST_STATUSES = ("waiting", "approved", "suggested", "held", "rejected", "expired")
+REQUEST_STATUSES = ("waiting", "approved", "suggested", "held", "rejected", "expired", "escalated")
 ESCALATION_STATUSES = ("open", "in_progress", "resolved")
 
 
@@ -53,7 +53,7 @@ class SlotClaim(Base, UUIDPK, Timestamped, Versioned):
 class ApprovalRequest(Base, UUIDPK, Timestamped, Versioned):
     __tablename__ = "approval_requests"
     __table_args__ = (
-        CheckConstraint("status IN ('waiting','approved','suggested','held','rejected','expired')",
+        CheckConstraint("status IN ('waiting','approved','suggested','held','rejected','expired','escalated')",
                         name="ck_request_status"),
     )
 

@@ -155,6 +155,24 @@ async def release_hold(db: AsyncSession, hold_id: UUID, *, reason: str = "releas
     return hold
 
 
+async def extend_hold(db: AsyncSession, hold_id: UUID, minutes: int, *, now: datetime | None = None) -> SlotHold:
+    """Give the driver more time to decide, within policy (max total hold age, default 60 min)."""
+    now = now or _now()
+    hold = (await db.execute(select(SlotHold).where(SlotHold.id == hold_id).with_for_update().execution_options(populate_existing=True))
+            ).scalar_one_or_none()
+    if hold is None:
+        raise NotFoundError("Hold not found")
+    if hold.status != "active" or hold.expires_at <= now:
+        raise ConflictError("HOLD_NOT_ACTIVE", f"The hold is {'expired' if hold.status == 'active' else hold.status}")
+    limit = hold.created_at + timedelta(minutes=await _ttl(db, "max_hold_minutes", MAX_HOLD_MINUTES))
+    new_expiry = min(hold.expires_at + timedelta(minutes=minutes), limit)
+    if new_expiry <= hold.expires_at:
+        raise ConflictError("EXTENSION_LIMIT", "This hold has reached the maximum hold time", {"limit": limit.isoformat()})
+    hold.expires_at = new_expiry
+    emit(db, "hold.extended", {"shipment_id": hold.shipment_id, "hold_id": hold.id, "expires_at": new_expiry.isoformat()})
+    return hold
+
+
 # ---------------------------------------------------------------- appointment creation
 _NEXT_CODE = text("SELECT nextval('appointment_code_seq')")
 

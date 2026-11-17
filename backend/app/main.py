@@ -119,6 +119,16 @@ from app.modules.notifications.router import router as notifications_router  # n
 api.include_router(carrier_portal_router)
 api.include_router(carrier_reports_router)
 api.include_router(notifications_router)
+from app.modules.coordinator.desk_activity_router import router as desk_activity_router  # noqa: E402
+from app.modules.coordinator.desk_board_router import router as desk_board_router  # noqa: E402
+from app.modules.coordinator.desk_handover_router import router as desk_handover_router  # noqa: E402
+from app.modules.coordinator.desk_threads_router import router as desk_threads_router  # noqa: E402
+
+for _desk in (desk_threads_router, desk_board_router, desk_handover_router, desk_activity_router):
+    api.include_router(_desk)
+from app.modules.coordinator.inbox_router import router as coordinator_inbox_router  # noqa: E402
+
+api.include_router(coordinator_inbox_router)
 app.include_router(api)
 
 

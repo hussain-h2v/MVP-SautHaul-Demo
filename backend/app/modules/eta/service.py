@@ -68,3 +68,14 @@ async def record_update(db: AsyncSession, shipment_id: UUID, *, source_type: str
     await db.flush()
     await shipments_service.set_latest_eta(db, shipment_id, upper_ts or declared_eta_ts)
     return u
+
+
+async def recent_changes(db, hours: int = 6, limit: int = 100):
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    rows = await db.execute(select(EtaUpdate).where(
+        EtaUpdate.source_type != "ORIGINAL_PLAN", EtaUpdate.created_at > datetime.now(UTC) - timedelta(hours=hours))
+        .order_by(EtaUpdate.created_at.desc()).limit(limit))
+    return list(rows.scalars().all())

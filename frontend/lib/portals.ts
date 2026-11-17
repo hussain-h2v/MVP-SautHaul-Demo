@@ -58,9 +58,15 @@ export const portals: Portal[] = [
     blurb: "Live inbox of driver requests, decisions, escalations, takeover.",
     nav: [
       { href: "/coordinator", labelKey: "nav.inbox", capability: "booking_decisions" },
+      { href: "/coordinator/competing", labelKey: "nav.competing", capability: "booking_decisions" },
       { href: "/coordinator/holds", labelKey: "nav.holds", capability: "booking_decisions" },
       { href: "/coordinator/escalations", labelKey: "nav.escalations", capability: "escalations_takeover" },
+      { href: "/coordinator/conversations", labelKey: "nav.conversations", capability: "escalations_takeover" },
       { href: "/coordinator/board", labelKey: "nav.board", capability: "day_schedule" },
+      { href: "/coordinator/handover", labelKey: "nav.handover", capability: "booking_decisions" },
+      { href: "/coordinator/insights", labelKey: "nav.insights", capability: "ai_insights" },
+      { href: "/coordinator/activity", labelKey: "nav.activity", capability: "audit_log" },
+      { href: "/coordinator/notifications", labelKey: "nav.notifications" },
     ],
   },
   {

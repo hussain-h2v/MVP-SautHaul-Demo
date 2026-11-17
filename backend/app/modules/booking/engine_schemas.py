@@ -81,3 +81,7 @@ class BookedOut(BaseModel):
     slot_id: UUID
     replaced_appointment_id: UUID | None
     needs_planner_approval: bool
+
+
+class ExtendIn(BaseModel):
+    minutes: int = Field(ge=1, le=60)

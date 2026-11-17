@@ -1,5 +1,7 @@
 "use client";
 
-import { makePortalHome } from "@/components/portal-layout";
+import { InboxView } from "@/components/coordinator/inbox-view";
 
-export default makePortalHome("coordinator");
+export default function CoordinatorInboxPage() {
+  return <InboxView />;
+}

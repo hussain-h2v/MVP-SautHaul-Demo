@@ -6,12 +6,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.events import publish_inbox_changed
+from app.core.idempotency import get_redis
 from app.core.errors import NotFoundError
 from app.core.guards import facility_staff
 from app.modules.appointments.models import Appointment
 from app.modules.auth.deps import Principal, require_any
 from app.modules.booking import engine
+from app.modules.coordinator import locks as coordinator_locks
+from app.modules.coordinator import messaging as coordinator_messaging
 from app.modules.booking.engine_schemas import (
+    ExtendIn,
     BookedOut, BookIn, CancelIn, HoldIn, HoldOut, KeepHoldIn, MoveCheckOut, MoveIn, RejectRequestIn, RequestIn,
     RequestOut, SuggestIn,
 )
@@ -65,7 +70,25 @@ def _booked(a: Appointment, pending: bool) -> BookedOut:
                      slot_id=a.slot_id, replaced_appointment_id=a.replaced_appointment_id, needs_planner_approval=pending)
 
 
+async def _require_free(request_id: UUID, p: Principal) -> None:
+    """Another coordinator working the same request blocks decisions (soft lock, shown by name)."""
+    redis = get_redis()
+    try:
+        await coordinator_locks.require_free(redis, "request", request_id, p.user_id)
+    finally:
+        await redis.aclose()
+
+
+async def _release_lock(request_id: UUID, p: Principal) -> None:
+    redis = get_redis()
+    try:
+        await coordinator_locks.release(redis, "request", request_id, p.user_id)
+    finally:
+        await redis.aclose()
+
+
 async def _notify(db: AsyncSession, shipment_id: UUID, reason: str) -> None:
+    await publish_inbox_changed(reason, shipment_id=str(shipment_id))
     s = (await shipments_service.get_many(db, [shipment_id])).get(shipment_id)
     if s is not None:
         await publish_change(s.destination_facility_id, reason, shipment_id=str(shipment_id))
@@ -158,12 +181,17 @@ async def list_requests(status: str | None = None, p: Principal = Depends(read),
 @router.post("/requests/{request_id}/approve", response_model=BookedOut)
 async def approve(request_id: UUID, p: Principal = Depends(decide), db: AsyncSession = Depends(get_db)):
     r = await _scoped_request(db, p, request_id)
+    await _require_free(request_id, p)
     try:
         appt = await engine.approve_request(db, request_id, p.user_id)
+        template = ("request_awaiting_approval" if appt.appointment_status == "PENDING_CONFIRMATION"
+                    else "appointment_changed" if appt.replaced_appointment_id else "appointment_confirmed")
+        await coordinator_messaging.to_driver(db, r.shipment_id, template, await coordinator_messaging.slot_vars(db, appt.slot_id))
     except Exception:
         await db.rollback()
         raise
     await db.commit()
+    await _release_lock(request_id, p)
     await _notify(db, r.shipment_id, "request.approved")
     return _booked(appt, appt.appointment_status == "PENDING_CONFIRMATION")
 
@@ -171,8 +199,11 @@ async def approve(request_id: UUID, p: Principal = Depends(decide), db: AsyncSes
 @router.post("/requests/{request_id}/suggest", response_model=RequestOut)
 async def suggest(request_id: UUID, body: SuggestIn, p: Principal = Depends(decide), db: AsyncSession = Depends(get_db)):
     await _scoped_request(db, p, request_id)
+    await _require_free(request_id, p)
     try:
         r = await engine.suggest(db, request_id, body.slot_ids, p.user_id)
+        await coordinator_messaging.to_driver(db, r.shipment_id, "appointment_changed",
+                                              {**await coordinator_messaging.slot_vars(db, r.suggested_slot_id), "offer": True})
     except Exception:
         await db.rollback()
         raise
@@ -184,16 +215,21 @@ async def suggest(request_id: UUID, body: SuggestIn, p: Principal = Depends(deci
 @router.post("/requests/{request_id}/hold", response_model=RequestOut)
 async def keep_hold(request_id: UUID, body: KeepHoldIn, p: Principal = Depends(decide), db: AsyncSession = Depends(get_db)):
     await _scoped_request(db, p, request_id)
+    await _require_free(request_id, p)
     r = await engine.keep_hold(db, request_id, p.user_id, body.extend_minutes, body.decision_deadline)
     await db.commit()
+    await _notify(db, r.shipment_id, "request.held")
     return _req_out(r)
 
 
 @router.post("/requests/{request_id}/reject", response_model=RequestOut)
 async def reject(request_id: UUID, body: RejectRequestIn, p: Principal = Depends(decide), db: AsyncSession = Depends(get_db)):
     await _scoped_request(db, p, request_id)
+    await _require_free(request_id, p)
     r = await engine.reject_request(db, request_id, p.user_id, body.reason)
+    await coordinator_messaging.to_driver(db, r.shipment_id, "appointment_changed", {"outcome": "not_possible", "reason": body.reason})
     await db.commit()
+    await _release_lock(request_id, p)
     await _notify(db, r.shipment_id, "request.rejected")
     return _req_out(r)
 
@@ -248,3 +284,19 @@ async def cancel(appointment_id: UUID, body: CancelIn, p: Principal = Depends(mo
     await db.commit()
     await _notify(db, a.shipment_id, "appointment.cancelled")
     return _booked(a, False)
+
+
+@router.post("/holds/{hold_id}/extend", response_model=HoldOut)
+async def extend(hold_id: UUID, body: ExtendIn, p: Principal = Depends(decide), db: AsyncSession = Depends(get_db)):
+    h = await db.get(SlotHold, hold_id)
+    if h is None:
+        raise NotFoundError("Hold not found")
+    s = await _shipment(db, p, h.shipment_id)
+    try:
+        h = await engine.extend_hold(db, hold_id, body.minutes)
+    except Exception:
+        await db.rollback()
+        raise
+    await db.commit()
+    await _notify(db, h.shipment_id, "hold.extended")
+    return _hold_out(h, s.code)

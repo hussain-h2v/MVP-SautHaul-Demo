@@ -30,7 +30,7 @@ export function PortalShell({
   const { data: user, isLoading } = useMe();
   const [open, setOpen] = useState(false);
   const allowed = !!user && user.role === portal.role;
-  const stream = useEventStream([["notifications"], ["inbox"], ["fac"], ["carrier"], ["list"], ["detail"]], allowed);
+  const stream = useEventStream([["notifications"], ["inbox"], ["fac"], ["coord"], ["carrier"], ["list"], ["detail"]], allowed);
 
   useEffect(() => setOpen(false), [pathname]);
 

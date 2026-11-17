@@ -201,3 +201,11 @@ async def import_csv(db: AsyncSession, p: Principal, file: UploadFile, dry_run: 
         await db.rollback()
         return ImportResult(dry_run=False, created=0, errors=errors)
     return ImportResult(dry_run=dry_run, created=created, errors=errors)
+
+
+async def get_many(db: AsyncSession, ids: list[UUID]) -> dict[UUID, Driver]:
+    from sqlalchemy import select
+
+    if not ids:
+        return {}
+    return {d.id: d for d in (await db.execute(select(Driver).where(Driver.id.in_(ids)))).scalars().all()}

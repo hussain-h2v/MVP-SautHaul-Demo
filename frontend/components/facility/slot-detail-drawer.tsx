@@ -1,6 +1,9 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import * as React from "react";
+import { MoveOptionsDialog } from "@/components/facility/move-options-dialog";
+import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/card";
 import { QueryState, KeyValue } from "@/components/facility/common";
@@ -34,11 +37,15 @@ function Section({ title, data, keys, locale, label }: { title: string; data: Re
   );
 }
 
-export function SlotDetailDrawer({ slotId, state, tz, onClose }: { slotId: string | null; state?: string; tz: string; onClose: () => void }) {
+export function SlotDetailDrawer({ slotId, state, tz, onClose, canMove }: { slotId: string | null; state?: string; tz: string; onClose: () => void; canMove?: boolean }) {
+  const [picking, setPicking] = React.useState(false);
   const t = useTranslations("facility");
   const locale = useLocale();
   const q = useFacQuery<SlotDetail>(slotId ? `/schedule/slots/${slotId}` : null);
   const d = q.data;
+  const appt = d?.appointment as { id?: string; status?: string } | null | undefined;
+  const ship = d?.shipment as { id?: string; code?: string } | null | undefined;
+  const movable = !!canMove && !!appt?.id && !!ship?.id && (appt.status === "CONFIRMED" || appt.status === "PENDING_CONFIRMATION");
   const label = (k: string) => (t.has(`fields.${k}` as "fields.code") ? t(`fields.${k}` as "fields.code") : k);
 
   return (
@@ -58,6 +65,11 @@ export function SlotDetailDrawer({ slotId, state, tz, onClose }: { slotId: strin
               {d.slot.block_reason && <span className="text-sm text-muted">{d.slot.block_reason}</span>}
             </div>
             {!d.appointment && <p className="text-sm text-muted">{t("schedule.noBooking")}</p>}
+            {movable && (
+              <Button variant="outline" onClick={() => setPicking(true)}>
+                {t("move.moveTo")}
+              </Button>
+            )}
             <Section title={t("schedule.booking")} data={d.appointment} locale={locale} label={label}
               keys={["code", "appointment_status", "booking_source", "booked_at", "confirmed_at", "cancelled_at", "cancellation_reason", "warehouse_confirmation_ref"]} />
             <Section title={t("schedule.shipment")} data={d.shipment} locale={locale} label={label}
@@ -98,6 +110,19 @@ export function SlotDetailDrawer({ slotId, state, tz, onClose }: { slotId: strin
           </div>
         )}
       </QueryState>
+      {movable && picking && (
+        <MoveOptionsDialog
+          open
+          onClose={() => {
+            setPicking(false);
+            onClose();
+          }}
+          appointmentId={appt!.id!}
+          shipmentId={ship!.id!}
+          shipmentCode={ship!.code ?? ""}
+          tz={tz}
+        />
+      )}
     </Dialog>
   );
 }

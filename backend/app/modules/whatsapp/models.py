@@ -34,8 +34,7 @@ class ChatThread(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     thread_status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     thread_intent: Mapped[str] = mapped_column(String(32), nullable=False)
-    # taken_over_by_user_id (FK -> users.id) is added by the Milestone 1 identity
-    # migration once the users table exists; coordinator takeover (spec section 7).
+    taken_over_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
 
 
 class ChatMessage(Base, UUIDPK, BusinessCoded, Timestamped, Versioned):

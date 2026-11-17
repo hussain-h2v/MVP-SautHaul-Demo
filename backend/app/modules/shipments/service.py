@@ -309,3 +309,13 @@ async def set_status(db: AsyncSession, shipment_id: UUID, status: str) -> None:
     s = await db.get(Shipment, shipment_id)
     if s is not None:
         s.current_status = status
+
+
+async def set_latest_eta(db: AsyncSession, shipment_id: UUID, ts: datetime) -> None:
+    s = await db.get(Shipment, shipment_id)
+    if s is not None:
+        s.latest_eta_ts = ts
+
+
+async def visible_to(db: AsyncSession, p: Principal, shipment_id: UUID) -> bool:
+    return await repository.get(db, p, shipment_id) is not None

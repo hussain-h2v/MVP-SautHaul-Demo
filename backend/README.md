@@ -21,8 +21,8 @@ Run everything through Docker (see root `CLAUDE.md`). Status: done = tested, pla
 | `slots` | Slot generator (dry-run, overlap-safe), bulk block/open with affected bookings, copy day, day-schedule grid + slot detail | done (M3) |
 | `appointments` | Appointments, check-ins, yard/gate | models done; API M3/M4 |
 | `eta` | ETA history and effective-ETA precedence | models done; logic M4 |
-| `scheduling` | `find_options` feasibility + ranking (read-only) | M4 |
-| `booking` | Holds, approve/suggest/reject, expiry sweeper, cancel/no-show, concurrency-safe | M4 |
+| `scheduling` | `find_options`: feasibility rules, multi-window combining, ranked options with explanations, competing-request ranking (read-only) | done (M4) |
+| `booking` | Holds, approve/suggest/keep/reject, planner move/book/cancel, expiry + no-show + stale-ETA sweeper, escalation, outbox, yard lifecycle; one-active-claim-per-slot in Postgres | done (M4) |
 | `exceptions` | Driver exception workflow, escalations | models done; API M6 |
 | `notifications` | In-app/email notifications, outbox | M6 |
 | `whatsapp`, `agent` | Webhook, templates, simulator, LangGraph driver assistant | M8 |
@@ -33,7 +33,7 @@ Run everything through Docker (see root `CLAUDE.md`). Status: done = tested, pla
 `listing` (sort/search/CSV), `config`, `db` (UUID/version mixins), `security` (argon2, JWT, AES-GCM), `permissions` (capability matrix), `scope` (row-level filters), `audit_events` (session hook), `events` (Redis Streams SSE fan-out), `idempotency`, `errors`, `logging` (structlog JSON + trace id), `context`.
 
 ## Data
-Migrations `alembic/versions` (0001 reference schema, 0002 integrity constraints + views, 0003 identity/audit/settings). Seed: `scripts/seed_reference.py` (SQLite snapshot), `scripts/seed_demo_users.py` (one demo user per role).
+Migrations `alembic/versions` (0001 reference schema, 0002 integrity constraints + views, 0003 identity/audit/settings, 0004 admin core, 0005 docks, 0006 booking engine). Seed: `scripts/seed_reference.py` (SQLite snapshot), `scripts/seed_demo_users.py` (one demo user per role).
 
 ## Tests
-`pytest` runs against a throwaway `setuhaul_test` database migrated from scratch: 159 tests (permission matrix cell-by-cell, auth/lockout/CSRF/rotation, scope isolation, audit, SSE isolation).
+`pytest` runs against a throwaway `setuhaul_test` database migrated from scratch: 272 tests (permission matrix cell-by-cell, auth/lockout/CSRF/rotation, scope isolation, audit, SSE isolation).

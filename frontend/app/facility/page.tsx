@@ -8,8 +8,9 @@ import { QueryState } from "@/components/facility/common";
 import { RequireFacility } from "@/components/facility/facility-context";
 import { PageHeader } from "@/components/page-header";
 import { Badge, Card } from "@/components/ui/card";
-import { qs, useFacQuery } from "@/lib/fac";
-import type { FacilityHome, FacilitySummary } from "@/lib/facility-types";
+import { qs, useCap, useFacQuery, useNow } from "@/lib/fac";
+import type { FacilityHome, FacilitySummary, HoldRow } from "@/lib/facility-types";
+import { countdown } from "@/lib/time";
 
 function Kpi({ icon: Icon, label, value, href, tone }: { icon: React.ElementType; label: string; value: React.ReactNode; href?: string; tone?: "warning" | "danger" }) {
   const body = (
@@ -35,6 +36,9 @@ function HomeView({ facility }: { facility: FacilitySummary }) {
   const f = useTranslations("facility");
   const q = useFacQuery<FacilityHome>(`/analytics/facility-home${qs({ facility_id: facility.id })}`, { refetchInterval: 60_000 });
   const d = q.data;
+  const canSeeHolds = !!useCap("booking_decisions");
+  const holds = useFacQuery<HoldRow[]>(canSeeHolds ? "/booking/holds" : null, { refetchInterval: 30_000 });
+  const now = useNow(1000);
   return (
     <>
       <PageHeader title={facility.facility_name} description={t("description", { hours: `${facility.open_time}–${facility.close_time}` })} />
@@ -46,7 +50,7 @@ function HomeView({ facility }: { facility: FacilitySummary }) {
               <Kpi icon={Truck} label={t("inbound")} value={d.inbound_count} href="/facility/inbound" />
               <Kpi icon={PackageCheck} label={t("inYard")} value={d.in_yard_count} href="/facility/yard" />
               <Kpi icon={ClipboardCheck} label={t("pending")} value={d.pending_confirmations} href="/facility/pending" tone={d.pending_confirmations > 0 ? "warning" : undefined} />
-              <Kpi icon={Hourglass} label={t("holds")} value={d.active_holds} />
+              <Kpi icon={Hourglass} label={t("holds")} value={canSeeHolds && holds.data ? holds.data.length : d.active_holds} />
               <Kpi icon={TriangleAlert} label={t("exceptions")} value={d.open_exceptions} tone={d.open_exceptions > 0 ? "danger" : undefined} />
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
@@ -80,6 +84,23 @@ function HomeView({ facility }: { facility: FacilitySummary }) {
                   </Link>
                 </p>
               </Card>
+              {canSeeHolds && (
+                <Card>
+                  <h2 className="font-semibold">{t("holdsTitle")}</h2>
+                  {holds.data && holds.data.length > 0 ? (
+                    <ul className="mt-3 space-y-2">
+                      {holds.data.slice(0, 6).map((h) => (
+                        <li key={h.id} className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{h.shipment_code ?? h.shipment_id.slice(0, 8)}</span>
+                          <Badge tone="warning">{t("holdExpires", { time: countdown(h.expires_at, now) })}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted">{t("holdsEmpty")}</p>
+                  )}
+                </Card>
+              )}
               <Card>
                 <h2 className="font-semibold">{t("insightsTitle")}</h2>
                 <p className="mt-2 text-sm text-muted">{t("insightsBody")}</p>

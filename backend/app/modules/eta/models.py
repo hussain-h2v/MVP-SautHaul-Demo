@@ -31,6 +31,7 @@ class EtaUpdate(Base, UUIDPK, Timestamped, Versioned):
     source_type: Mapped[str] = mapped_column(String(32), nullable=False)
     reported_by_driver_id: Mapped[UUID | None] = mapped_column(ForeignKey("drivers.id"))
     declared_eta_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    declared_eta_upper_ts: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     confidence_code: Mapped[str] = mapped_column(String(16), default="MEDIUM", nullable=False)
     delay_reason_code: Mapped[str | None] = mapped_column(String(32))
     note: Mapped[str | None] = mapped_column(String(1000))

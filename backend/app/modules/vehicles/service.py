@@ -18,3 +18,11 @@ async def list_types(db: AsyncSession) -> list[VehicleType]:
 
 async def known_type_codes(db: AsyncSession) -> set[str]:
     return {t.code for t in await list_types(db)}
+
+
+async def type_code_for_vehicle(db: AsyncSession, vehicle_id: UUID | None) -> str | None:
+    if vehicle_id is None:
+        return None
+    row = (await db.execute(select(VehicleType.code).join(Vehicle, Vehicle.vehicle_type_id == VehicleType.id)
+                            .where(Vehicle.id == vehicle_id))).first()
+    return row[0] if row else None

@@ -162,6 +162,10 @@ async def bulk_status(db: AsyncSession, p: Principal, body: BulkStatusIn) -> Bul
     for s in slots:
         s.slot_status = body.status
         s.block_reason = None if body.status == "OPEN" else body.reason
+    if affected:
+        from app.modules.booking import engine as booking_engine
+
+        await booking_engine.create_replan_requests(db, [a.appointment_id for a in affected], "REPLAN_SLOT_BLOCKED")
     return BulkStatusOut(applied=True, updated=len(slots), affected_appointments=affected)
 
 
@@ -204,10 +208,23 @@ async def schedule(db: AsyncSession, p: Principal, facility_id: UUID, day: date)
     slots = await repository.list_slots(db, p, fac.id, start, end)
     appts = await appointments_service.for_slots(db, [s.id for s in slots])
     events = await docks_service.events_between(db, [d.id for d in docks], start, end)
+    from app.modules.booking import readers as booking_readers
+
+    holds = await booking_readers.holds_for_slots(db, [s.id for s in slots], datetime.now(UTC))
+    hold_ships = await shipments_service.summaries(db, list({h.shipment_id for h in holds.values()}))
     ships = await shipments_service.summaries(db, list({a.shipment_id for a in appts}))
     by_slot: dict[UUID, list] = {}
     for a in appts:
         by_slot.setdefault(a.slot_id, []).append(a)
+    # extra slots of a multi-window booking carry no appointment row of their own: attach it via the claims
+    claimed = await booking_readers.claimed_appointments(db, [s.id for s in slots if s.id not in by_slot])
+    if claimed:
+        extra = {a.id: a for a in [await appointments_service.get(db, aid) for aid in set(claimed.values())] if a}
+        more = await shipments_service.summaries(db, list({a.shipment_id for a in extra.values()}))
+        ships.update(more)
+        for sid, aid in claimed.items():
+            if aid in extra:
+                by_slot.setdefault(sid, []).append(extra[aid])
 
     def grid_appt(a) -> GridAppointment:
         s = ships.get(a.shipment_id, {})
@@ -238,13 +255,19 @@ async def schedule(db: AsyncSession, p: Principal, facility_id: UUID, day: date)
                 state = "blocked"
             elif appt is not None:
                 state = APPT_STATE[appt.appointment_status]
+            elif s.id in holds:
+                state = "held"
             else:
                 state = "open"
             grid.append(GridSlot(
                 slot_id=s.id, code=s.code, start=s.slot_start_ts, end=s.slot_end_ts, state=state,
                 block_reason=s.block_reason, history_state=history_state if state == "open" else None,
                 event=GridEvent(event_type=ev.event_type, reason=ev.reason) if ev else None,
-                appointment=grid_appt(appt) if appt else None,
+                appointment=grid_appt(appt) if appt else (GridAppointment(
+                    id=holds[s.id].id, code="HOLD", status="HELD", shipment_code=hold_ships.get(holds[s.id].shipment_id, {}).get("code"),
+                    carrier_name=hold_ships.get(holds[s.id].shipment_id, {}).get("carrier_name"),
+                    driver_name=hold_ships.get(holds[s.id].shipment_id, {}).get("driver_name"),
+                    priority_code=hold_ships.get(holds[s.id].shipment_id, {}).get("priority_code")) if s.id in holds and state == "held" else None),
             ))
         out_docks.append(GridDock(id=dock.id, code=dock.code, dock_code=dock.dock_code, dock_type=dock.dock_type,
                                   dock_status=dock.dock_status, slots=grid))

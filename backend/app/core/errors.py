@@ -33,6 +33,13 @@ class SlotTakenError(ConflictError):
         super().__init__("SLOT_TAKEN", "This slot was just taken by another request.", {"slot_id": slot_id})
 
 
+class SlotUnavailableError(ConflictError):
+    """The option stopped being feasible (rule, ETA, dock event, hours...). Distinct from SLOT_TAKEN."""
+
+    def __init__(self, reasons: list[str]):
+        super().__init__("SLOT_UNAVAILABLE", "This option is no longer feasible.", {"reasons": reasons})
+
+
 class ForbiddenError(AppError):
     status_code = 403
 

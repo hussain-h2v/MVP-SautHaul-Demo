@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.scope import scope_by_facility
 from app.modules.appointments.models import ACTIVE_STATUSES, Appointment
 from app.modules.auth.deps import Principal
-from app.modules.docks.models import Dock
+from app.modules.booking.models import SlotClaim, SlotHold
+from app.modules.docks.models import Dock, DockStatusEvent
 from app.modules.facilities.models import Facility, FacilityRule
 from app.modules.slots.models import AppointmentSlot
 
@@ -77,3 +78,63 @@ async def appointments_in_window(db: AsyncSession, facility_id: UUID, start: dat
                    Appointment.appointment_status.in_(statuses),
                    and_(AppointmentSlot.slot_start_ts >= start, AppointmentSlot.slot_start_ts < end)))
     return (await db.execute(stmt.order_by(AppointmentSlot.slot_start_ts))).all()
+
+
+# ---------------------------------------------------------------- reads used by scheduling and the booking engine
+async def facility_docks(db: AsyncSession, facility_id: UUID) -> list[Dock]:
+    return list((await db.execute(select(Dock).where(Dock.facility_id == facility_id).order_by(Dock.dock_code))).scalars().all())
+
+
+async def slots_between(db: AsyncSession, facility_id: UUID, start: datetime, end: datetime):
+    return list((await db.execute(
+        select(AppointmentSlot).where(AppointmentSlot.facility_id == facility_id, AppointmentSlot.slot_start_ts >= start,
+                                      AppointmentSlot.slot_start_ts < end)
+        .order_by(AppointmentSlot.dock_id, AppointmentSlot.slot_start_ts))).scalars().all())
+
+
+async def events_overlapping(db: AsyncSession, dock_ids: list[UUID], start: datetime, end: datetime):
+    if not dock_ids:
+        return []
+    return list((await db.execute(
+        select(DockStatusEvent).where(DockStatusEvent.dock_id.in_(dock_ids), DockStatusEvent.event_start_ts < end,
+                                      or_(DockStatusEvent.event_end_ts.is_(None), DockStatusEvent.event_end_ts > start))
+    )).scalars().all())
+
+
+async def occupied_slot_ids(db: AsyncSession, slot_ids: list[UUID], now: datetime,
+                            ignore_hold_ids: tuple[UUID, ...] = (), ignore_appointment_ids: tuple[UUID, ...] = ()) -> set[UUID]:
+    """Slots with an active claim: a live appointment, or a hold that has not expired yet."""
+    if not slot_ids:
+        return set()
+    stmt = (select(SlotClaim.slot_id).join(SlotHold, SlotHold.id == SlotClaim.hold_id, isouter=True)
+            .where(SlotClaim.slot_id.in_(slot_ids), SlotClaim.active.is_(True),
+                   or_(SlotClaim.appointment_id.is_not(None), SlotHold.expires_at > now)))
+    if ignore_hold_ids:
+        stmt = stmt.where(or_(SlotClaim.hold_id.is_(None), SlotClaim.hold_id.not_in(ignore_hold_ids)))
+    if ignore_appointment_ids:
+        stmt = stmt.where(or_(SlotClaim.appointment_id.is_(None), SlotClaim.appointment_id.not_in(ignore_appointment_ids)))
+    return {r[0] for r in (await db.execute(stmt)).all()}
+
+
+async def lock_slots(db: AsyncSession, slot_ids: list[UUID]) -> list[AppointmentSlot]:
+    """SELECT ... FOR UPDATE in id order (deadlock-free); concurrent callers for the same slots queue here."""
+    rows = (await db.execute(select(AppointmentSlot).where(AppointmentSlot.id.in_(slot_ids))
+                             .order_by(AppointmentSlot.id).with_for_update().execution_options(populate_existing=True))).scalars().all()
+    return list(rows)
+
+
+async def holds_for_slots(db: AsyncSession, slot_ids: list[UUID], now: datetime) -> dict[UUID, SlotHold]:
+    if not slot_ids:
+        return {}
+    rows = await db.execute(select(SlotClaim.slot_id, SlotHold).join(SlotHold, SlotHold.id == SlotClaim.hold_id)
+                            .where(SlotClaim.slot_id.in_(slot_ids), SlotClaim.active.is_(True), SlotHold.expires_at > now))
+    return {sid: h for sid, h in rows.all()}
+
+
+async def claimed_appointments(db: AsyncSession, slot_ids: list[UUID]) -> dict[UUID, UUID]:
+    """slot_id -> appointment_id for every slot an appointment claims (covers the extra slots of multi-window bookings)."""
+    if not slot_ids:
+        return {}
+    rows = await db.execute(select(SlotClaim.slot_id, SlotClaim.appointment_id).where(
+        SlotClaim.slot_id.in_(slot_ids), SlotClaim.active.is_(True), SlotClaim.appointment_id.is_not(None)))
+    return {sid: aid for sid, aid in rows.all()}

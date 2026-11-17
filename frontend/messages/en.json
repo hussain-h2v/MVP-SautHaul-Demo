@@ -531,7 +531,25 @@
       "NEEDS_HEAVY_DOCK": "This load needs a heavy dock.",
       "NEEDS_STANDARD_DOCK": "This load needs a standard dock.",
       "NEEDS_REFRIGERATED_DOCK": "This load is temperature-controlled and needs a refrigerated dock.",
-      "LOAD_EXCEEDS_DOCK_LIMIT": "The load is heavier than this dock allows."
+      "LOAD_EXCEEDS_DOCK_LIMIT": "The load is heavier than this dock allows.",
+      "BEFORE_ETA": "This slot starts before the truck's expected arrival.",
+      "TOO_SHORT": "The slot is too short for the unload time.",
+      "NOT_CONSECUTIVE": "The slots are not back to back on the same dock.",
+      "SLOT_BLOCKED": "The slot is blocked or closed.",
+      "OCCUPIED": "Another booking or hold already occupies this slot.",
+      "DOCK_EVENT": "A dock breakdown, maintenance or reduced capacity covers this slot.",
+      "OUTSIDE_HOURS": "The slot is outside the facility's operating hours.",
+      "MISSES_DEADLINE": "The truck could not finish unloading by the driver's latest time.",
+      "VEHICLE_TYPE_NOT_ALLOWED": "This dock does not accept the truck's vehicle type.",
+      "IN_THE_PAST": "That time has already passed.",
+      "SLOT_NOT_FOUND": "The slot could not be found.",
+      "WRONG_FACILITY_OR_DOCK": "The slots must be on one dock of the shipment's facility.",
+      "COMBINES_N_WINDOWS": "Combines {n} consecutive windows because the load needs more than one.",
+      "NEEDS_PLANNER_APPROVAL": "Starts after the last allowed start, so a planner must approve it.",
+      "COMPATIBLE_DOCK": "Dock suits the load and truck.",
+      "FITS_UNLOAD_WINDOW": "Window is long enough for the unload.",
+      "AFTER_ETA": "Starts after the truck's ETA.",
+      "MEETS_FINISH_DEADLINE": "Finishes before the driver's latest time."
     },
     "fields": {
       "code": "Code",
@@ -573,7 +591,10 @@
       "openEvents": "{count} open dock events",
       "insightsTitle": "Facility insights",
       "insightsBody": "Idle gaps, unload overruns and a congestion forecast will appear here.",
-      "milestone9": "Arrives in Milestone 9"
+      "milestone9": "Arrives in Milestone 9",
+      "holdsTitle": "Active holds",
+      "holdsEmpty": "No active holds.",
+      "holdExpires": "Expires in {time}"
     },
     "schedule": {
       "title": "Day schedule",
@@ -585,7 +606,7 @@
       "noDocks": "This facility has no docks yet.",
       "noSlotsOnDate": "No slots exist on {date}.",
       "jumpTo": "Jump to {date}",
-      "moveNote": "Moving a booking by drag and drop arrives in Milestone 4.",
+      "moveNote": "Drag a confirmed or pending booking onto an open slot, or use Move to… in the slot details.",
       "previously": "Previously {state}",
       "detail": "Slot details",
       "booking": "Booking",
@@ -595,7 +616,8 @@
       "eta": "Latest ETA",
       "history": "History",
       "noHistory": "No earlier bookings on this slot.",
-      "noBooking": "Nothing is booked on this slot."
+      "noBooking": "Nothing is booked on this slot.",
+      "heldFor": "Held for {shipment}"
     },
     "pending": {
       "title": "Pending confirmations",
@@ -609,7 +631,6 @@
       "confirm": "Confirm",
       "reject": "Reject",
       "suggest": "Suggest another slot",
-      "suggestSoon": "Arrives in Milestone 4",
       "confirmTitle": "Confirm this booking?",
       "confirmMessage": "{shipment} will be promised the {slot} slot.",
       "rejectTitle": "Reject this booking?",
@@ -622,7 +643,9 @@
       "reason": {
         "STARTS_AFTER_LAST_START": "Starts after the last allowed start time, so a planner must approve it.",
         "NEEDS_CONFIRMATION": "A facility rule requires planner confirmation."
-      }
+      },
+      "suggestHint": "Pick another feasible slot for this booking.",
+      "suggested": "Booking re-slotted"
     },
     "docks": {
       "title": "Docks",
@@ -865,6 +888,38 @@
         "no_shows": "No-shows",
         "count": "Count"
       }
+    },
+    "moveErrors": {
+      "SLOT_TAKEN": "Someone else just took that slot. Pick another one.",
+      "SLOT_UNAVAILABLE": "That slot is no longer feasible: {reasons}",
+      "FIXED_IN_PROGRESS": "A truck that is already unloading is fixed and cannot be moved.",
+      "generic": "The booking could not be moved."
+    },
+    "move": {
+      "dragHint": "Drag a confirmed or pending booking onto an open slot, or use Move to… in the slot details.",
+      "fixedTooltip": "Already unloading: fixed",
+      "checking": "Checking the target…",
+      "feasible": "Feasible",
+      "needsApproval": "Feasible, needs planner approval",
+      "infeasible": "Not possible",
+      "confirmTitle": "Move this booking?",
+      "confirmMessage": "{shipment} moves from {from} to {to}.",
+      "confirmApproval": "This slot starts after the last allowed start. The booking will wait for planner confirmation and the current slot is kept until then.",
+      "confirmAction": "Move booking",
+      "moved": "Booking moved and confirmed",
+      "movedPending": "Booking moved; waiting for planner confirmation",
+      "moveTo": "Move to…",
+      "pickerTitle": "Move or re-slot a booking",
+      "pickerDescription": "Feasible slots for {shipment}, best first. Nothing is reserved until you choose one.",
+      "pickerEta": "Effective ETA {time} ({source}, {confidence})",
+      "pickerReview": "The ETA is vague or a range: check it with the driver.",
+      "pickerEmpty": "No feasible slot was found after the ETA.",
+      "pickerRejections": "Why others were rejected",
+      "moveHere": "Move here",
+      "rank": "Option {rank}",
+      "approvalBadge": "Needs planner approval",
+      "targetNotOpen": "Drop on an open slot.",
+      "notEnoughSlots": "The load needs {count} back-to-back slots here."
     }
   }
 }

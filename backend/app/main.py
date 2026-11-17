@@ -102,6 +102,11 @@ for r in (auth_router, users_router, settings_router, audit_router, events_route
 from app.modules.docks.router import router as docks_router  # noqa: E402
 from app.modules.slots.router import router as slots_router  # noqa: E402
 
+from app.modules.booking.engine_router import router as booking_engine_router  # noqa: E402
+from app.modules.scheduling.router import router as scheduling_router  # noqa: E402
+
+api.include_router(booking_engine_router)
+api.include_router(scheduling_router)
 api.include_router(docks_router)
 api.include_router(slots_router)
 app.include_router(api)
@@ -136,3 +141,12 @@ async def readyz() -> JSONResponse:
         await redis.aclose()
     ok = all(v == "ok" for v in checks.values())
     return JSONResponse({"status": "ok" if ok else "degraded", **checks}, status_code=200 if ok else 503)
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics_endpoint():
+    from fastapi import Response
+
+    from app.core import metrics
+
+    return Response(metrics.render(), media_type="text/plain; version=0.0.4")

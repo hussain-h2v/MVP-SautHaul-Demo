@@ -9,6 +9,7 @@ import { SLOT_STATES, SLOT_STYLES, styleFor } from "@/lib/slot-state";
 import { hhmm, minutesFromDayStart } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/card";
+import type { MoveGridProps } from "@/components/facility/use-move-drag";
 
 const LABEL_W = 132;
 const LANE_H = 52;
@@ -42,11 +43,13 @@ export function ScheduleGrid({
   pxPerHour,
   selectedSlotId,
   onSelect,
+  move,
 }: {
   schedule: Schedule;
   pxPerHour: number;
   selectedSlotId: string | null;
   onSelect: (slot: ScheduleSlot, dock: ScheduleDock) => void;
+  move?: MoveGridProps;
 }) {
   const t = useTranslations("facility");
   const tz = schedule.facility.timezone;
@@ -182,10 +185,14 @@ export function ScheduleGrid({
                           onMouseLeave={() => setHover(null)}
                           onFocus={(e) => show(slot, dock, e.currentTarget)}
                           onBlur={() => setHover(null)}
+                          {...move?.dragFor(slot, dock)}
+                          {...move?.dropFor(slot, dock)}
                           className={cn(
                             "flex h-full w-full flex-col items-start justify-center overflow-hidden rounded-md px-1.5 text-left transition-shadow",
                             style.className,
                             selectedSlotId === slot.slot_id && "ring-2 ring-ring ring-offset-1",
+                            move?.dragFor(slot, dock).draggable && "cursor-grab active:cursor-grabbing",
+                            move?.ringFor(slot.slot_id),
                           )}
                         >
                           <span className="flex items-center gap-1 font-medium">
@@ -214,7 +221,10 @@ export function ScheduleGrid({
             {hover.dock.dock_code} · {hhmm(hover.slot.start, tz)}–{hhmm(hover.slot.end, tz)}
           </p>
           <p className="text-xs text-muted">{t(`state.${styleFor(hover.slot.state).labelKey}`)}</p>
-          {hover.slot.appointment && (
+          {hover.slot.state === "held" && hover.slot.appointment && (
+            <p className="mt-1 text-xs font-medium">{t("schedule.heldFor", { shipment: hover.slot.appointment.shipment_code })}</p>
+          )}
+          {hover.slot.appointment && hover.slot.state !== "held" && (
             <p className="mt-1 text-xs">
               {hover.slot.appointment.shipment_code} · {hover.slot.appointment.carrier_name ?? "—"}
               {hover.slot.appointment.driver_name ? ` · ${hover.slot.appointment.driver_name}` : ""}

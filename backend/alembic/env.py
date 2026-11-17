@@ -20,7 +20,8 @@ target_metadata = Base.metadata
 
 _RAW_INDEXES = {
     "ix_slots_facility_time", "ux_active_appointment_per_slot", "ux_current_active_appointment_per_shipment",
-    "ix_chat_messages_thread_time", "ix_eta_updates_shipment_created", "ix_dock_events_dock_start",
+    "ix_chat_messages_thread_time", "ix_eta_updates_shipment_created", "ix_dock_events_dock_start", "ux_active_hold_per_slot", "ux_active_hold_per_shipment",
+    "ux_active_claim_per_slot", "ix_holds_expiry",
 }
 
 

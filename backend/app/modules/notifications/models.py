@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, Timestamped, UUIDPK, Versioned
@@ -36,3 +37,17 @@ class OperationalMessage(Base, UUIDPK, Timestamped, Versioned):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     delivery_status: Mapped[str] = mapped_column(String(16), nullable=False)
     reply_to_message_id: Mapped[UUID | None] = mapped_column(ForeignKey("operational_messages.id"))
+
+
+class OutboxEvent(Base, UUIDPK, Timestamped, Versioned):
+    """Transactional outbox: written in the same transaction as the state change, delivered later by a
+    worker (WhatsApp/email/in-app fan-out arrives in M6/M8)."""
+
+    __tablename__ = "outbox_events"
+    __table_args__ = (CheckConstraint("status IN ('pending','sent','failed')", name="ck_outbox_status"),)
+
+    event_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), default="pending", nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

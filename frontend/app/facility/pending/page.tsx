@@ -11,14 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Field, FormError, Textarea } from "@/components/ui/fields";
+import { MoveOptionsDialog } from "@/components/facility/move-options-dialog";
 import { api } from "@/lib/api";
-import { qs, useCap, useFacMutation, useFacQuery, useNow, apiErrorText } from "@/lib/fac";
+import { describeMoveError, type Tr } from "@/lib/problems";
+import { qs, useCap, useFacMutation, useFacQuery, useNow } from "@/lib/fac";
 import type { FacilitySummary, PendingAppointment } from "@/lib/facility-types";
 import { formatDateTime } from "@/lib/format";
 import { countdown, hhmm, minutesUntil } from "@/lib/time";
 
 function PendingView({ facility }: { facility: FacilitySummary }) {
   const t = useTranslations("facility.pending");
+  const tf = useTranslations("facility");
   const locale = useLocale();
   const now = useNow(1000);
   const canWrite = useCap("day_schedule") === "W";
@@ -27,13 +30,14 @@ function PendingView({ facility }: { facility: FacilitySummary }) {
   const [rejecting, setRejecting] = React.useState<PendingAppointment | null>(null);
   const [reason, setReason] = React.useState("");
   const [err, setErr] = React.useState<string | null>(null);
+  const [suggesting, setSuggesting] = React.useState<PendingAppointment | null>(null);
 
   const confirm = useFacMutation((a: PendingAppointment) => api(`/appointments/${a.appointment_id}/confirm`, { method: "POST" }), {
     success: t("confirmed"),
     onSuccess: () => setConfirming(null),
     onError: (e) => {
       setConfirming(null);
-      setErr(apiErrorText(e));
+      setErr(describeMoveError(e, tf as unknown as Tr));
     },
   });
   const reject = useFacMutation(
@@ -45,7 +49,7 @@ function PendingView({ facility }: { facility: FacilitySummary }) {
         setRejecting(null);
         setReason("");
       },
-      onError: (e) => setErr(apiErrorText(e)),
+      onError: (e) => setErr(describeMoveError(e, tf as unknown as Tr)),
     },
   );
 
@@ -101,12 +105,9 @@ function PendingView({ facility }: { facility: FacilitySummary }) {
                       <Button variant="outline" onClick={() => { setErr(null); setRejecting(a); }}>
                         {t("reject")}
                       </Button>
-                      <Button variant="outline" disabled title={t("suggestSoon")} aria-describedby={`suggest-${a.appointment_id}`}>
+                      <Button variant="outline" title={t("suggestHint")} onClick={() => { setErr(null); setSuggesting(a); }}>
                         {t("suggest")}
                       </Button>
-                      <span id={`suggest-${a.appointment_id}`} className="sr-only">
-                        {t("suggestSoon")}
-                      </span>
                     </div>
                   )}
                 </Card>
@@ -115,6 +116,18 @@ function PendingView({ facility }: { facility: FacilitySummary }) {
           })}
         </ul>
       </QueryState>
+
+      {suggesting && (
+        <MoveOptionsDialog
+          open
+          onClose={() => setSuggesting(null)}
+          appointmentId={suggesting.appointment_id}
+          shipmentId={suggesting.shipment_id}
+          shipmentCode={suggesting.shipment_code}
+          tz={facility.timezone}
+          successKey="suggested"
+        />
+      )}
 
       <ConfirmDialog
         open={!!confirming}

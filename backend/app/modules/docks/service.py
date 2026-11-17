@@ -130,6 +130,10 @@ async def create_event(db: AsyncSession, p: Principal, body: DockEventIn) -> tup
     affected = []
     if body.event_type != "REOPENED":
         affected = await affected_for_window(db, dock.id, body.event_start_ts, body.event_end_ts)
+        if affected:
+            from app.modules.booking import engine as booking_engine  # lazy: booking depends on docks
+
+            await booking_engine.create_replan_requests(db, [a.appointment_id for a in affected], "REPLAN_DOCK_EVENT")
     return e, dock, affected
 
 

@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 _base = os.environ.get("DATABASE_URL", "postgresql+asyncpg://setuhaul:setuhaul@postgres:5432/setuhaul")
-os.environ["DATABASE_URL"] = re.sub(r"/[^/]+$", "/setuhaul_test", _base)
+TEST_DB = "setuhaul_test" + os.environ.get("TEST_DB_SUFFIX", "")
+os.environ["DATABASE_URL"] = re.sub(r"/[^/]+$", "/" + TEST_DB, _base)
 os.environ["ENV"] = "test"
 os.environ.setdefault("JWT_SECRET", "test-secret-test-secret-test-secret")
 os.environ.setdefault("PROVIDER_KEY_ENCRYPTION_KEY", "0" * 32)
@@ -34,8 +35,8 @@ async def _recreate_db() -> None:
     url = os.environ["DATABASE_URL"].replace("postgresql+asyncpg", "postgresql")
     admin = re.sub(r"/[^/]+$", "/postgres", url)
     conn = await asyncpg.connect(admin)
-    await conn.execute("DROP DATABASE IF EXISTS setuhaul_test WITH (FORCE)")
-    await conn.execute("CREATE DATABASE setuhaul_test")
+    await conn.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
+    await conn.execute(f"CREATE DATABASE {TEST_DB}")
     await conn.close()
 
 

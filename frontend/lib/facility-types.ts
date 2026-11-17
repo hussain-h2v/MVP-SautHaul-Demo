@@ -174,6 +174,7 @@ export interface SlotDetail {
 
 export interface PendingAppointment {
   appointment_id: string;
+  shipment_id: string;
   code: string;
   shipment_code: string;
   carrier_name: string | null;
@@ -267,4 +268,45 @@ export interface FacilitySummary {
   close_time: string;
   timezone: string;
   active_flag: boolean;
+}
+
+export interface SchedulingOption {
+  rank: number;
+  slot_ids: string[];
+  slot_codes: string[];
+  dock_code: string;
+  dock_type: DockType;
+  start: string;
+  end: string;
+  needs_planner_approval: boolean;
+  reasons: string[];
+  explanation: string;
+}
+
+export interface SchedulingOptions {
+  shipment_id: string;
+  eta: { ts: string; source: string; confidence: string; upper_ts: string | null; requires_human_review: boolean } | null;
+  total_feasible: number;
+  options: SchedulingOption[];
+  rejections: Record<string, number>;
+}
+
+export interface MoveResult {
+  appointment_id: string;
+  code: string;
+  appointment_status: "CONFIRMED" | "PENDING_CONFIRMATION";
+  is_current: boolean;
+  slot_id: string;
+  replaced_appointment_id: string | null;
+  needs_planner_approval: boolean;
+}
+
+export interface HoldRow {
+  id: string;
+  shipment_id: string;
+  shipment_code: string | null;
+  slot_ids: string[];
+  status: string;
+  expires_at: string;
+  seconds_left: number;
 }

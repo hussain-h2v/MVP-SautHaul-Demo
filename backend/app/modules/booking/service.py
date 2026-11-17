@@ -13,7 +13,7 @@ from app.core.errors import ConflictError, NotFoundError, ValidationAppError
 from app.modules.appointments import service as appointments_service
 from app.modules.appointments.models import ACTIVE_STATUSES, Appointment, FacilityCheckin
 from app.modules.auth.deps import Principal
-from app.modules.booking import readers
+from app.modules.booking import engine, readers
 from app.modules.booking.schemas import FinishOut, InboundRow, PendingOut, YardOut, YardRow
 from app.modules.docks import service as docks_service
 from app.modules.eta import service as eta_service
@@ -115,18 +115,12 @@ async def _scoped_appointment(db: AsyncSession, p: Principal, appointment_id: UU
 
 async def confirm(db: AsyncSession, p: Principal, appointment_id: UUID) -> tuple[Appointment, UUID]:
     a, slot = await _scoped_appointment(db, p, appointment_id)
-    if a.appointment_status != "PENDING_CONFIRMATION":
-        raise ConflictError("INVALID_STATE", f"Appointment is {a.appointment_status}, not pending confirmation")
-    a.appointment_status, a.confirmed_at = "CONFIRMED", now()
-    return a, slot.facility_id
+    return await engine.confirm_pending(db, a.id), slot.facility_id
 
 
 async def reject(db: AsyncSession, p: Principal, appointment_id: UUID, reason: str) -> tuple[Appointment, UUID]:
     a, slot = await _scoped_appointment(db, p, appointment_id)
-    if a.appointment_status != "PENDING_CONFIRMATION":
-        raise ConflictError("INVALID_STATE", f"Appointment is {a.appointment_status}, not pending confirmation")
-    a.appointment_status, a.is_current, a.cancellation_reason = "REJECTED", False, reason
-    return a, slot.facility_id
+    return await engine.reject_pending(db, a.id, reason), slot.facility_id
 
 
 # ---------------------------------------------------------------- lifecycle helpers (reused by M4)
@@ -291,6 +285,7 @@ async def finish_unload(db: AsyncSession, p: Principal, checkin_id: UUID) -> tup
     appt = (await appointments_service.current_for_shipments(db, [c.shipment_id])).get(c.shipment_id)
     if appt and appt.appointment_status in ACTIVE_STATUSES:
         appt.appointment_status = "COMPLETED"
+        await engine.close_appointment(db, appt)
     await shipments_service.set_status(db, c.shipment_id, "COMPLETED")
     row = await _row_for_shipment(db, c.shipment_id)
     unload = _min(c.unload_end_ts, c.unload_start_ts)
@@ -316,9 +311,11 @@ async def no_show(db: AsyncSession, p: Principal, appointment_id: UUID) -> tuple
         raise ConflictError("GRACE_NOT_ELAPSED", f"The {grace}-minute grace period has not elapsed",
                             {"grace_minutes": grace})
     mark_no_show(a)
+    await engine.close_appointment(db, a)
     ck = (await appointments_service.checkins_for_shipments(db, [a.shipment_id])).get(a.shipment_id)
     if ck:
         ck.arrival_state = "NO_SHOW"
+    engine.emit(db, "appointment.no_show", {"shipment_id": a.shipment_id, "appointment_id": a.id})
     return a, fac.id
 
 
@@ -363,3 +360,69 @@ async def yard_counts(db: AsyncSession, facility_id: UUID) -> int:
 
 async def pending_count(db: AsyncSession, p: Principal, facility_id: UUID) -> int:
     return len(await readers.pending_appointments(db, p, facility_id))
+
+
+
+# ---------------------------------------------------------------- sweeper helpers (called from engine.sweep)
+NO_SHOW_LOOKBACK_H = 24
+ETA_STALE_AFTER_MIN = 30
+
+
+async def sweep_no_shows(db: AsyncSession, t: datetime) -> int:
+    """CONFIRMED appointments whose slot started more than the facility grace ago, with no check-in. Only the last
+    24 hours are considered so historical/seeded data is never rewritten."""
+    from sqlalchemy import select
+
+    from app.modules.slots.models import AppointmentSlot
+
+    rows = (await db.execute(
+        select(Appointment, AppointmentSlot).join(AppointmentSlot, AppointmentSlot.id == Appointment.slot_id)
+        .where(Appointment.appointment_status == "CONFIRMED", Appointment.is_current.is_(True),
+               AppointmentSlot.slot_start_ts < t, AppointmentSlot.slot_start_ts > t - timedelta(hours=NO_SHOW_LOOKBACK_H))
+        .with_for_update(of=Appointment, skip_locked=True).limit(500))).all()
+    if not rows:
+        return 0
+    checked = await appointments_service.checkins_for_shipments(db, [a.shipment_id for a, _ in rows])
+    facilities = await readers.facilities_by_ids(db, list({s.facility_id for _, s in rows}))
+    n = 0
+    for a, slot in rows:
+        fac = facilities[slot.facility_id]
+        grace = await grace_minutes(db, fac.id, slot.slot_start_ts.astimezone(ZoneInfo(fac.timezone)).date())
+        if a.shipment_id in checked or t <= slot.slot_start_ts + timedelta(minutes=grace):
+            continue
+        mark_no_show(a)
+        await engine.close_appointment(db, a)
+        engine.emit(db, "appointment.no_show", {"shipment_id": a.shipment_id, "appointment_id": a.id, "auto": True})
+        n += 1
+    return n
+
+
+async def sweep_stale_etas(db: AsyncSession, t: datetime) -> int:
+    """Confirmed trucks not yet at the gate whose effective ETA passed more than 30 min ago: flag once per ETA."""
+    from sqlalchemy import select
+
+    from app.modules.notifications.models import OutboxEvent
+    from app.modules.slots.models import AppointmentSlot
+
+    rows = (await db.execute(
+        select(Appointment).join(AppointmentSlot, AppointmentSlot.id == Appointment.slot_id)
+        .where(Appointment.appointment_status == "CONFIRMED", Appointment.is_current.is_(True),
+               AppointmentSlot.slot_start_ts < t + timedelta(hours=24), AppointmentSlot.slot_end_ts > t).limit(500))).scalars().all()
+    if not rows:
+        return 0
+    ids = [a.shipment_id for a in rows]
+    etas = await eta_service.latest_eta_for(db, ids)
+    checked = await appointments_service.checkins_for_shipments(db, ids)
+    n = 0
+    for a in rows:
+        eta = (etas.get(a.shipment_id) or {}).get("eta_ts")
+        if eta is None or a.shipment_id in checked or eta > t - timedelta(minutes=ETA_STALE_AFTER_MIN):
+            continue
+        key = f"{a.shipment_id}:{eta.isoformat()}"
+        seen = (await db.execute(select(OutboxEvent.id).where(OutboxEvent.event_type == "eta.stale",
+                                                              OutboxEvent.payload["key"].astext == key).limit(1))).first()
+        if seen:
+            continue
+        engine.emit(db, "eta.stale", {"shipment_id": a.shipment_id, "eta": eta.isoformat(), "key": key})
+        n += 1
+    return n

@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -6,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.modules.ai import prompts, usage
+from app.modules.ai import monitoring, prompts, usage, usage_map
 from app.modules.ai import router as ai_router
 from app.modules.ai.admin_schemas import (
     BudgetIn, BudgetOut, BudgetPatch, PromptIn, PromptOut, PromptPatch, PromptTestIn, RollbackIn,
@@ -130,18 +131,31 @@ async def delete_budget(budget_id: UUID, _: Principal = Depends(write), db: Asyn
     await db.commit()
 
 
+# ---------------------------------------------------------------- monitoring
+@router.get("/monitoring")
+async def get_monitoring(range: str = "7d", date_from: datetime | None = None, date_to: datetime | None = None, task: str | None = None,
+                         provider: str | None = None, model: str | None = None, status: str | None = None,
+                         _: Principal = Depends(read), db: AsyncSession = Depends(get_db)):
+    return await monitoring.overview(db, range_=range, date_from=date_from, date_to=date_to, task=task, provider=provider, model=model, status=status)
+
+
+@router.get("/usage-map")
+async def get_usage_map(_: Principal = Depends(read), db: AsyncSession = Depends(get_db)):
+    return await usage_map.build(db)
+
+
 # ---------------------------------------------------------------- logs
 @router.get("/logs")
-async def list_logs(request_id: str | None = None, task: str | None = None, status: str | None = None, provider: str | None = None,
-                    date_from: datetime | None = None, date_to: datetime | None = None, limit: int = Query(50, ge=1, le=200),
-                    offset: int = Query(0, ge=0), _: Principal = Depends(read), db: AsyncSession = Depends(get_db)):
-    return await usage.logs(db, request_id=request_id, task=task, status=status, provider=provider, date_from=date_from, date_to=date_to,
-                            limit=limit, offset=offset)
+async def list_logs(request_id: str | None = None, trace_id: str | None = None, task: str | None = None, status: str | None = None,
+                    provider: str | None = None, model: str | None = None, range: str | None = None, date_from: datetime | None = None,
+                    date_to: datetime | None = None, fallback_only: bool = False, min_latency_ms: int | None = Query(None, ge=0),
+                    min_cost: Decimal | None = Query(None, ge=0), sort: str = "created_at", direction: str = "desc",
+                    limit: int = Query(25, ge=1, le=200), offset: int = Query(0, ge=0), _: Principal = Depends(read), db: AsyncSession = Depends(get_db)):
+    return await monitoring.logs(db, range_=range, date_from=date_from, date_to=date_to, request_id=request_id, trace_id=trace_id, task=task,
+                                 status=status, provider=provider, model=model, fallback_only=fallback_only, min_latency_ms=min_latency_ms,
+                                 min_cost=min_cost, sort=sort, direction=direction, limit=limit, offset=offset)
 
 
 @router.get("/logs/{log_id}")
 async def get_log(log_id: UUID, _: Principal = Depends(read), db: AsyncSession = Depends(get_db)):
-    return await usage.log_detail(db, log_id)
-
-
-_ = invalidate_cache
+    return await monitoring.trace(db, log_id)

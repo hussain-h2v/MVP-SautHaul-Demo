@@ -11,7 +11,7 @@ from app.modules.ai.models import AIModel, AIProvider, AIRoute, AIRouteStep
 NAME = "Offline mock (demo)"
 BACKUP = "Offline mock backup (demo)"  # a second provider, so a failure of the first shows real fallback
 MODELS = ["mock-primary", "mock-weak", "mock-timeout", "mock-429", "mock-500", "mock-badjson", "mock-auth"]
-TASKS = ["intent_classify", "driver_chat", "translate", "summarise", "coordinator_suggestion"]
+TASKS = ["intent_classify", "driver_chat", "translate", "summarise", "coordinator_suggestion", "driver_insight", "dock_insight"]
 
 
 async def main() -> None:
@@ -53,6 +53,10 @@ async def main() -> None:
             for prio, name in enumerate(("mock-primary", "mock-fast"), start=1):
                 db.add(AIRouteStep(route_id=route.id, priority=prio, model_id=have[name].id, key_ids=[], key_strategy="single",
                                    timeout_ms=15000, max_retries=1, temperature=0.1, max_tokens=600, conditions={}))
+        # demo list prices (USD per 1M tokens) so cost, budgets and monitoring show real numbers; real models carry their own prices
+        for name, (pin, pout) in {"mock-primary": (3, 15), "mock-fast": (0.25, 1.25)}.items():
+            if not have[name].input_price and not have[name].output_price:
+                have[name].input_price, have[name].output_price = pin, pout
         await db.commit()
     print("AI demo routes ready (provider A mock-primary -> provider B mock-fast) for", ", ".join(TASKS))
 

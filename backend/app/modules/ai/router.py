@@ -293,6 +293,7 @@ async def _run_step(db, redis: Redis, step: StepCfg, route: RouteCfg, task: str,
             except ProviderError as e:
                 error_code = e.code
                 entry["outcome"] = f"error:{e.code}"
+                entry["ms"] = int((time.perf_counter() - t0) * 1000)
                 entry["message"] = e.message[:160]
                 if e.code in base.RETRYABLE and attempt < step.max_retries:
                     continue

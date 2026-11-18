@@ -900,7 +900,9 @@
         "overrun_min": "Overrun (min)",
         "no_shows": "No-shows",
         "count": "Count"
-      }
+      },
+      "analytics": "Analytics and schedule proposal",
+      "detailTitle": "Detailed reports"
     },
     "moveErrors": {
       "SLOT_TAKEN": "Someone else just took that slot. Pick another one.",
@@ -1219,7 +1221,7 @@
     },
     "insights": {
       "title": "Insights",
-      "description": "Suggestions based on your own operational data. Every number will come with its evidence.",
+      "description": "Your punctuality, delay patterns by driver and lane, slot changes and offer decisions.",
       "soon": "Arrives in Milestone 9",
       "delays": {
         "title": "Fleet delay trends",
@@ -1271,7 +1273,9 @@
         "gate_in": "Gate in",
         "unload_start": "Unload start",
         "detention_min": "Detention (min)"
-      }
+      },
+      "analytics": "Analytics",
+      "detailTitle": "Detailed reports"
     }
   },
   "coord": {
@@ -1690,7 +1694,7 @@
     },
     "insights": {
       "title": "Insights",
-      "description": "Coordinator suggestions, disruption clusters and driver insights.",
+      "description": "How the operations desk is doing: requests, decisions, escalations and what the assistant resolves on its own.",
       "cardTitle": "Insights arrive in Milestone 9",
       "cardBody": "Disruption clusters, daily briefings and driver insights will appear here once the AI layer is in place."
     },
@@ -2504,6 +2508,193 @@
       "qArrived": "Arrived",
       "qSafety": "Safety word",
       "qStop": "STOP (opt out)"
+    }
+  },
+  "insights": {
+    "rangeLabel": "Time range",
+    "range": {
+      "1d": "Last 24 hours",
+      "3d": "3 days",
+      "7d": "7 days",
+      "3w": "3 weeks",
+      "1m": "1 month"
+    },
+    "bucket": {
+      "hour": "per hour",
+      "day": "per day"
+    },
+    "periodNote": "Showing {from} to {to}, grouped {bucket}, compared with the period before it. Times are Asia/Kolkata.",
+    "noPrev": "no earlier data",
+    "vsPrev": "vs previous period",
+    "loading": "Loading",
+    "error": "Could not load the figures.",
+    "retry": "Retry",
+    "noData": "No activity in this period.",
+    "csv": "Download CSV",
+    "csvFailed": "The download failed.",
+    "csvTable": {
+      "series": "Time series",
+      "by_facility": "By facility",
+      "delay_causes": "Delay causes",
+      "escalation_reasons": "Escalations",
+      "request_mix": "Requests",
+      "by_dock": "By dock",
+      "heatmap": "Heatmap",
+      "dock_events": "Dock events",
+      "by_driver": "By driver",
+      "by_lane": "By lane"
+    },
+    "kpi": {
+      "utilisation_pct": "Dock utilisation",
+      "on_time_rate": "On-time arrivals",
+      "avg_wait_min": "Average wait",
+      "wait_p90_min": "Wait, slowest 10%",
+      "avg_dwell_min": "Average dwell",
+      "no_show_rate": "No-show rate",
+      "loads_completed": "Loads completed",
+      "requests": "Slot requests",
+      "avg_decision_min": "Time to decision",
+      "decision_p90_min": "Decision, slowest 10%",
+      "escalations": "Escalations",
+      "bot_resolution_rate": "Resolved by the assistant",
+      "delay_reports": "Delay reports",
+      "backlog": "Open backlog",
+      "lost_hours": "Dock hours lost",
+      "holds_expired": "Holds expired",
+      "avg_resolution_min": "Escalation resolution",
+      "arrivals": "Arrivals",
+      "late": "Late arrivals",
+      "avg_declared_delay_min": "Average declared delay",
+      "slot_moves": "Slot moves",
+      "decline_rate": "Offer decline rate"
+    },
+    "chart": {
+      "utilisation": "Dock utilisation over time",
+      "arrivals": "Arrivals and late arrivals",
+      "arrivalsLabel": "Arrivals",
+      "lateLabel": "Late",
+      "requests": "Requests and escalations",
+      "delays": "Delay reports and no-shows",
+      "noShows": "No-shows",
+      "wait": "Average wait at the gate"
+    },
+    "table": {
+      "name": "Name",
+      "count": "Count",
+      "share": "Share",
+      "avgDelay": "Average delay",
+      "avgResolution": "Average resolution",
+      "delayCauses": "Delay causes",
+      "escalationReasons": "Why requests were escalated",
+      "requestMix": "How requests were decided",
+      "byFacility": "By facility",
+      "byDock": "By dock",
+      "dockEvents": "Dock events",
+      "byDriver": "By driver",
+      "byLane": "By lane (origin to facility)",
+      "facility": "Facility",
+      "dock": "Dock",
+      "type": "Type",
+      "available": "Bookable min",
+      "booked": "Booked min",
+      "events": "Events",
+      "hours": "Hours lost",
+      "driver": "Driver",
+      "trips": "Trips",
+      "late": "Late",
+      "lateRate": "Late rate",
+      "avgLate": "Average lateness",
+      "delayReports": "Delay reports",
+      "lane": "Lane",
+      "avgWait": "Average wait"
+    },
+    "cause": {
+      "TRAFFIC": "Traffic",
+      "BREAKDOWN": "Breakdown",
+      "WEATHER": "Weather",
+      "LOADING_DELAY": "Loading delay",
+      "LATE_DEPARTURE": "Late departure",
+      "ROUTE_ISSUE": "Route issue",
+      "OTHER": "Other",
+      "UNSPECIFIED": "Not stated"
+    },
+    "reason": {
+      "NO_FEASIBLE_SLOT": "No feasible slot",
+      "NO_ACCEPTABLE_OPTION": "No acceptable option",
+      "DRIVER_DECLINED_OFFER": "Driver declined the offer",
+      "LOW_CONFIDENCE": "Message not understood",
+      "DISPUTE": "Dispute or penalty",
+      "SAFETY": "Safety",
+      "TURN_LIMIT": "Conversation too long"
+    },
+    "request": {
+      "approved": "Approved",
+      "suggested": "Another slot suggested",
+      "rejected": "Rejected",
+      "waiting": "Waiting",
+      "held": "Kept on hold",
+      "expired": "Expired",
+      "escalated": "Escalated"
+    },
+    "weekday": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    },
+    "heatmap": {
+      "title": "Busiest hours",
+      "hint": "Booked share of bookable slot time by weekday and hour (IST). Darker means busier."
+    },
+    "aiSpend": {
+      "title": "AI spend",
+      "today": "Today",
+      "month": "This month so far",
+      "projected": "Projected this month"
+    },
+    "narrative": {
+      "title": "Briefing",
+      "aiNote": "AI explains the figures, people decide",
+      "unavailable": "AI is unavailable right now. The figures and charts below are complete.",
+      "footer": "Written by {model} from the aggregated figures only. It never changes a booking."
+    },
+    "optimiser": {
+      "title": "Schedule proposal",
+      "description": "Compares the current plan with first come, first served and with an earliest-feasible-start plan that lets higher priority go first on ties.",
+      "proposalOnly": "Proposal only. Nothing is booked, moved or released from here. To apply a move, use Move on the day schedule.",
+      "day": "Day",
+      "noSlots": "There are no slots on this day.",
+      "nothingMovable": "No confirmed or pending bookings can be moved on this day (started, arrived and completed loads stay fixed).",
+      "better": "The proposal lowers priority-weighted waiting by {n} points.",
+      "noBetter": "The current plan is already as good as the proposal.",
+      "movable": "Movable loads: {n}.",
+      "card": {
+        "current": "Current plan",
+        "fcfs": "First come, first served",
+        "proposed": "Proposed"
+      },
+      "totalWait": "Total wait",
+      "weighted": "Priority-weighted wait",
+      "highWait": "High priority wait",
+      "maxWait": "Longest wait",
+      "moved": "Loads moved",
+      "movesCaption": "Proposed moves",
+      "col": {
+        "shipment": "Shipment",
+        "priority": "Priority",
+        "eta": "Expected",
+        "from": "Now",
+        "to": "Proposed",
+        "waitNow": "Wait now",
+        "waitAfter": "Wait after"
+      },
+      "changes": "moves",
+      "stays": "stays",
+      "unplaced": "no slot found",
+      "rule": "Rule: earliest feasible start; higher priority, then earlier expected arrival, breaks ties. Docks and loads must be compatible, and blocked or event-hit slots are skipped."
     }
   }
 }

@@ -28,7 +28,8 @@ Run everything through Docker (see root `CLAUDE.md`). Status: done = tested, pla
 | `notifications` | In-app notifications from the outbox (arq every 10 s), per-user read state, scoped | done (M5); email/WhatsApp delivery M8 |
 | `whatsapp`, `agent` | Webhook, templates, simulator, LangGraph driver assistant | M8 |
 | `ai` | `ai.run` router, providers/keys/models/routes, fallback + breakers + budgets, PII masking, prompts, evaluations, usage, logs, safety, offline mock provider | done (M7) |
-| `insights`, `analytics` | Driver/dock/coordinator/carrier/network insights, dashboards | M9 |
+| `analytics` | Scoped read model for four views (network, facility, coordinator, carrier): KPIs with previous period, hour/day series, heatmap, tables, CSV; legacy facility reports | done (M9) |
+| `insights` | AI briefings from de-identified aggregates (cached, AI-off safe) and the proposal-only schedule optimiser | done (M9) |
 
 ## Cross-cutting (`app/core`)
 `listing` (sort/search/CSV), `config`, `db` (UUID/version mixins), `security` (argon2, JWT, AES-GCM), `permissions` (capability matrix), `scope` (row-level filters), `audit_events` (session hook), `events` (Redis Streams SSE fan-out), `idempotency`, `errors`, `logging` (structlog JSON + trace id), `context`.

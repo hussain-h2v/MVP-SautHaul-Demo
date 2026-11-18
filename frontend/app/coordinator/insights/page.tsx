@@ -1,22 +1,19 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { ViewPage } from "@/components/insights/view-page";
 import { PageHeader } from "@/components/page-header";
-import { Card } from "@/components/ui/card";
 
 export default function CoordinatorInsightsPage() {
   const t = useTranslations("coord.insights");
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
-      <Card className="flex items-start gap-3">
-        <Sparkles className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden="true" />
-        <div>
-          <p className="font-medium">{t("cardTitle")}</p>
-          <p className="mt-1 text-sm text-muted">{t("cardBody")}</p>
-        </div>
-      </Card>
+      <ViewPage
+        view="coordinator" filenameBase="desk"
+        kpis={["requests", "avg_decision_min", "decision_p90_min", "backlog", "escalations", "avg_resolution_min", "holds_expired", "bot_resolution_rate"]}
+        charts={["requests", "delays"]} csv={["series", "request_mix", "escalation_reasons"]}
+      />
     </>
   );
 }

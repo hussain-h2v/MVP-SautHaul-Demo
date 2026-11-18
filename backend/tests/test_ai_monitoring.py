@@ -147,7 +147,7 @@ async def test_usage_map_lists_wired_and_planned_tasks_with_live_stats(client, w
     m = (await client.get(f"{API}/usage-map")).json()
     by = {i["task"]: i for i in m["items"]}
     assert by["intent_classify"]["status"] == "wired" and by["intent_classify"]["last_30d"]["requests"] == 1
-    assert by["driver_chat"]["status"] == "reserved" and by["summarise"]["status"] == "planned" and by["summarise"]["last_30d"]["requests"] == 0
+    assert by["driver_chat"]["status"] == "reserved" and by["translate"]["status"] == "planned" and by["translate"]["last_30d"]["requests"] == 0 and by["summarise"]["status"] == "wired"
     assert m["guards"] and m["flow"] and m["admin_tools"]
 
 

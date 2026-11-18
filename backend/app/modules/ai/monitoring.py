@@ -257,3 +257,23 @@ async def trace(db: AsyncSession, log_id) -> dict:
         "same_trace": same_trace,
         "bodies_stored": bool(r.prompt_redacted or r.response_redacted),
     }
+
+
+# ---------------------------------------------------------------- compact spend summary for other modules (e.g. the admin dashboard)
+async def spend_summary(db: AsyncSession, now: datetime | None = None) -> dict:
+    """Today, month to date and projected month spend (IST calendar). Other modules read AI cost through this, never the table."""
+    now = now or datetime.now(UTC)
+    local = now.astimezone(TZ)
+    day0 = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    month0 = day0.replace(day=1)
+
+    async def spend(frm: datetime) -> tuple[Decimal, int]:
+        r = (await db.execute(text("SELECT coalesce(sum(cost), 0) AS cost, count(*) AS n FROM ai_usage_logs WHERE created_at >= :f"), {"f": frm.astimezone(UTC)})).one()
+        return Decimal(r.cost), int(r.n)
+
+    today, today_n = await spend(day0)
+    mtd, mtd_n = await spend(month0)
+    elapsed = max(1, (day0 - month0).days + 1)
+    days_in_month = ((month0 + timedelta(days=32)).replace(day=1) - month0).days
+    return {"today": str(today), "today_requests": today_n, "month_to_date": str(mtd), "month_requests": mtd_n,
+            "projected_month": str((mtd / elapsed * days_in_month).quantize(Decimal("0.0001"))), "currency": "USD"}

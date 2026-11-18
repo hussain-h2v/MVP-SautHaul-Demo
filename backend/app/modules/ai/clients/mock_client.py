@@ -114,6 +114,34 @@ def _last_user_text(messages: list[dict]) -> str:
     return ""
 
 
+_LABELS = {"utilisation_pct": "Dock utilisation", "on_time_rate": "On-time arrivals", "avg_wait_min": "Average wait (min)", "avg_dwell_min": "Average dwell (min)",
+           "no_show_rate": "No-show rate", "loads_completed": "Loads completed", "requests": "Slot requests", "avg_decision_min": "Average time to decision (min)",
+           "escalations": "Escalations", "bot_resolution_rate": "Resolved by the assistant", "delay_reports": "Delay reports", "backlog": "Open backlog",
+           "wait_p90_min": "Wait p90 (min)", "lost_hours": "Dock hours lost to events", "holds_expired": "Holds expired", "arrivals": "Arrivals", "late": "Late arrivals",
+           "avg_declared_delay_min": "Average declared delay (min)", "slot_moves": "Slot moves", "decline_rate": "Offer decline rate",
+           "decision_p90_min": "Slowest 10% of decisions (min)", "avg_resolution_min": "Average escalation resolution (min)"}
+
+
+def _briefing(text: str) -> str:
+    """Offline stand-in for a narrative model: turns the figures it is given into plain bullets (only numbers it received)."""
+    try:
+        facts = json.loads(text.split("<figures>", 1)[1].split("</figures>", 1)[0])
+    except (ValueError, IndexError):
+        return "No figures were provided."
+    lines = []
+    for k, v in facts.get("kpis", {}).items():
+        if len(lines) >= 5 or not v.get("value") and not v.get("previous"):
+            continue
+        ch = v.get("change_pct")
+        trend = "no earlier period to compare" if ch is None else ("unchanged" if ch == 0 else f"{'up' if ch > 0 else 'down'} {abs(ch)}% on the previous period")
+        unit = "%" if k.endswith(("_pct", "_rate")) else ""
+        lines.append(f"- {_LABELS.get(k, k)}: {v['value']}{unit} ({trend}).")
+    causes = facts.get("delay_causes") or []
+    if causes:
+        lines.append(f"- Most common delay cause: {causes[0]['key'].lower().replace('_', ' ')} ({causes[0]['share_pct']}% of reports).")
+    return "\n".join(lines[:5]) or "Not enough activity in this period to draw conclusions."
+
+
 class MockClient:
     async def complete(self, req: CallRequest) -> CallResponse:
         name = req.model_name
@@ -137,6 +165,8 @@ class MockClient:
             out = json.dumps(classify(text, english_only=name == "mock-weak"))
         elif any("translate" in str(m.get("content", "")).lower() for m in req.messages if m.get("role") == "system"):
             out = f"[translated] {text}"
+        elif "<figures>" in text:
+            out = _briefing(text)
         else:
             out = f"Noted. ({name}) {text[:80]}"
         return CallResponse(text=out, tokens_in=max(1, sum(len(str(m.get("content", ""))) for m in req.messages) // 4),

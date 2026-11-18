@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     whatsapp_access_token: str = Field(default="", alias="WHATSAPP_ACCESS_TOKEN")
     whatsapp_phone_number_id: str = Field(default="", alias="WHATSAPP_PHONE_NUMBER_ID")
     whatsapp_verify_token: str = Field(default="", alias="WHATSAPP_VERIFY_TOKEN")
+    whatsapp_graph_url: str = Field(default="https://graph.facebook.com/v20.0", alias="WHATSAPP_GRAPH_URL")
 
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:2000"], alias="CORS_ORIGINS")
 

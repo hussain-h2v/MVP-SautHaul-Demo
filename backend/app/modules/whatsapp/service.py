@@ -44,3 +44,31 @@ async def driver_messages_for_thread_codes(db, codes: list[str]) -> dict[str, li
     for code, text, intent in rows.all():
         out.setdefault(code, []).append((text, intent))
     return out
+
+
+OPEN_THREAD_STATUSES = ("OPEN", "WAITING_FOR_DRIVER", "WAITING_FOR_WAREHOUSE")
+
+
+async def get_or_create_thread(db, driver_id, now):
+    """The driver's latest open conversation, else a new one (code THR<seq>)."""
+    import uuid as _uuid
+
+    from sqlalchemy import Integer, cast, func, select
+    from sqlalchemy.exc import IntegrityError
+
+    t = (await db.execute(select(ChatThread).where(ChatThread.driver_id == driver_id, ChatThread.thread_status.in_(OPEN_THREAD_STATUSES))
+                          .order_by(ChatThread.opened_at.desc()).limit(1))).scalar_one_or_none()
+    if t is not None:
+        return t
+    for _ in range(5):
+        n = (await db.execute(select(func.max(cast(func.substr(ChatThread.code, 4), Integer))).where(ChatThread.code.op("~")("^THR[0-9]+$")))).scalar()
+        t = ChatThread(code=f"THR{(n or 0) + 1:03d}", driver_id=driver_id, opened_at=now, thread_status="OPEN", thread_intent="UNKNOWN")
+        try:
+            async with db.begin_nested():
+                db.add(t)
+                await db.flush()
+            return t
+        except IntegrityError:
+            if t in db:
+                db.expunge(t)
+    raise RuntimeError("could not allocate a thread code")

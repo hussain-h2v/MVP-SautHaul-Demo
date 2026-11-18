@@ -21,6 +21,7 @@ from app.modules.shipments import service as shipments_service
 from app.modules.slots import service as slots_service
 
 MAX_ATTEMPTS = 5
+WHATSAPP_DELIVERY_EVENTS = ("whatsapp.template", "whatsapp.send", "whatsapp.verification")
 TZ = ZoneInfo("Asia/Kolkata")
 CARRIER_EVENTS = {
     "shipment.offered", "appointment.confirmed", "appointment.pending_confirmation", "appointment.rejected",
@@ -78,6 +79,8 @@ TITLES = {
     "shipment.reassigned": "Driver or vehicle reassigned for {code}",
     "shipment.offer_responded": "Carrier responded to the offer for {code}",
     "shipment.assigned": "Driver and vehicle assigned to {code}",
+    "request.created": "New slot request for {code}",
+    "driver.arrived": "Driver reports arrival for {code}",
 }
 
 
@@ -87,7 +90,9 @@ def audiences(event_type: str, carrier_id: UUID | None, facility_id: UUID | None
         out.append(Audience("carrier_user", carrier_id=carrier_id))
     if event_type in ("appointment.pending_confirmation", "replan.requested"):
         out.append(Audience("facility_planner", facility_id=facility_id))
-    if event_type in ("escalation.created", "shipment.reassigned", "eta.stale", "shipment.offer_responded", "shipment.assigned"):
+    if event_type == "driver.arrived":
+        out.append(Audience("facility_planner", facility_id=facility_id))
+    if event_type in ("request.created", "driver.arrived", "escalation.created", "shipment.reassigned", "eta.stale", "shipment.offer_responded", "shipment.assigned"):
         out.append(Audience("coordinator"))
     return out
 
@@ -104,6 +109,13 @@ async def notify(db: AsyncSession, *, type: str, title: str, body: str = "", pay
 
 async def _project(db: AsyncSession, ev: OutboxEvent, res: ProcessResult) -> None:
     payload = ev.payload or {}
+    if ev.event_type == "whatsapp.delivery_failed":  # coordinators and admins must see a failed message
+        title = str(payload.get("title") or "WhatsApp delivery failed")
+        for role in ("coordinator", "admin"):
+            await notify(db, type=ev.event_type, title=title, body=str(payload.get("body") or ""), payload=payload, role=role)
+            res.notifications += 1
+        res.to_publish.append((None, None, {"type": ev.event_type, "title": title}))
+        return
     if ev.event_type.startswith("ai."):  # AI platform alerts (provider/key failure, budget threshold) go to admins
         title = str(payload.get("title") or ev.event_type)
         await notify(db, type=ev.event_type, title=title, body=str(payload.get("body") or ""), payload=payload, role="admin")
@@ -137,6 +149,7 @@ async def process_outbox(db: AsyncSession, limit: int = 200, now: datetime | Non
     now = now or datetime.now(UTC)
     rows = (await db.execute(
         select(OutboxEvent).where(
+            OutboxEvent.event_type.not_in(WHATSAPP_DELIVERY_EVENTS),  # consumed by the WhatsApp dispatcher, not projected
             or_(OutboxEvent.status == "pending",
                 (OutboxEvent.status == "failed") & (OutboxEvent.attempts < MAX_ATTEMPTS)),
             or_(OutboxEvent.next_attempt_at.is_(None), OutboxEvent.next_attempt_at <= now))
@@ -197,3 +210,13 @@ async def failed_operational_messages(db, limit: int = 100, within_days: int = 7
         OperationalMessage.delivery_status == "FAILED",
         OperationalMessage.sent_at > datetime.now(UTC) - timedelta(days=within_days)).order_by(OperationalMessage.sent_at.desc()).limit(limit))
     return list(rows.scalars().all())
+
+
+async def record_failed_whatsapp(db: AsyncSession, shipment_id: UUID, to: str, body: str) -> None:
+    """A WhatsApp send that failed is evidence of NO confirmation: it shows up in the coordinator inbox as a failed message."""
+    from app.modules.notifications.models import OperationalMessage
+
+    db.add(OperationalMessage(shipment_id=shipment_id, channel="WHATSAPP", sender_address="setuhaul", recipient_address=to or "unknown",
+                              subject="WhatsApp delivery failed", message_body=(body or "")[:4000], sent_at=datetime.now(UTC),
+                              delivery_status="FAILED"))
+    await db.flush()

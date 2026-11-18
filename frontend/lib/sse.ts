@@ -20,6 +20,8 @@ export const SSE_EVENT_TYPES = [
   "slot.changed",
   "inbox.changed",
   "shipment.offer_responded",
+  "whatsapp.simulator",
+  "whatsapp.message",
 ] as const;
 
 /** Subscribes to the scoped SSE stream; any event invalidates the given query keys. */

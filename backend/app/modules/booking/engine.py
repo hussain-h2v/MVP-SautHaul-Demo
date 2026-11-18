@@ -245,6 +245,10 @@ async def approve_hold(db: AsyncSession, hold_id: UUID, *, decided_by: UUID | No
     hold.status = "converted"
     if request is not None:
         request.status, request.decided_by, request.decided_at = "approved", decided_by, now
+        if request.exception_id:
+            from app.modules.exceptions import service as exceptions_service
+
+            await exceptions_service.set_status(db, request.exception_id, "RESOLVED")
         metrics.APPROVAL_LATENCY.observe(max(0.0, (now - request.created_at).total_seconds()))
     metrics.HOLDS.labels("converted").inc()
     metrics.APPROVALS.labels("approved").inc()
@@ -379,6 +383,10 @@ async def reject_request(db: AsyncSession, request_id: UUID, decided_by: UUID, r
     if r.hold_id is not None:
         await release_hold(db, r.hold_id, reason="request rejected")
     r.status, r.decided_by, r.decided_at, r.reason = "rejected", decided_by, now or _now(), reason
+    if r.exception_id:
+        from app.modules.exceptions import service as exceptions_service
+
+        await exceptions_service.set_status(db, r.exception_id, "CANCELLED")
     metrics.APPROVALS.labels("rejected").inc()
     emit(db, "request.rejected", {"shipment_id": r.shipment_id, "request_id": r.id, "reason": reason})
     return r

@@ -12,7 +12,7 @@ from app.core.context import current_actor, current_trace_id
 
 SENSITIVE = {"password_hash", "totp_secret", "refresh_hash", "token_hash", "encrypted_key"}
 # High-volume projection tables: their origin (outbox_events, state changes) is already audited.
-IGNORED_TABLES = {"notifications", "notification_reads", "ai_usage_logs"}  # high-volume append-only logs have their own record
+IGNORED_TABLES = {"notifications", "notification_reads", "ai_usage_logs", "whatsapp_messages", "whatsapp_webhook_events"}  # high-volume append-only logs have their own record
 _installed = False
 
 

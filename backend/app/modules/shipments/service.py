@@ -429,3 +429,12 @@ async def reassign(db: AsyncSession, p: Principal, shipment_id: UUID, driver_id:
                                      "old_driver_id": old_driver, "new_driver_id": driver_id,
                                      "old_vehicle_id": old_vehicle, "new_vehicle_id": vehicle_id})
     return s, check
+
+
+async def active_for_driver(db: AsyncSession, driver_id: UUID) -> list[Shipment]:
+    from sqlalchemy import select
+
+    rows = await db.execute(select(Shipment).where(
+        Shipment.driver_id == driver_id, Shipment.current_status.in_(("ASSIGNED", "IN_TRANSIT", "AT_GATE", "WAITING")))
+        .order_by(Shipment.original_eta_ts))
+    return list(rows.scalars().all())

@@ -135,6 +135,11 @@ from app.modules.ai.evals import router as ai_evals_router  # noqa: E402
 
 for _ai in (ai_admin_router, ai_ops_router, ai_evals_router):
     api.include_router(_ai)
+from app.modules.whatsapp.admin_router import router as whatsapp_admin_router  # noqa: E402
+from app.modules.whatsapp.webhook_router import router as whatsapp_webhook_router  # noqa: E402
+
+api.include_router(whatsapp_admin_router)
+app.include_router(whatsapp_webhook_router)
 app.include_router(api)
 
 

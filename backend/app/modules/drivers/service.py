@@ -209,3 +209,25 @@ async def get_many(db: AsyncSession, ids: list[UUID]) -> dict[UUID, Driver]:
     if not ids:
         return {}
     return {d.id: d for d in (await db.execute(select(Driver).where(Driver.id.in_(ids)))).scalars().all()}
+
+
+async def find_by_whatsapp(db: AsyncSession, number: str) -> Driver | None:
+    return await repository.by_whatsapp(db, number)
+
+
+async def set_opt_in(db: AsyncSession, driver_id: UUID, value: bool) -> Driver | None:
+    d = await db.get(Driver, driver_id)
+    if d is not None:
+        d.whatsapp_opt_in = value
+    return d
+
+
+async def list_by_opt_state(db: AsyncSession, opted_in: bool | None, limit: int, offset: int) -> tuple[int, list[Driver]]:
+    from sqlalchemy import func, select
+
+    stmt = select(Driver).where(Driver.whatsapp_number.is_not(None))
+    if opted_in is not None:
+        stmt = stmt.where(Driver.whatsapp_opt_in.is_(opted_in))
+    total = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
+    rows = (await db.execute(stmt.order_by(Driver.driver_name).limit(limit).offset(offset))).scalars().all()
+    return total, list(rows)

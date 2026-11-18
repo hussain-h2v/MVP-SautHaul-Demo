@@ -194,3 +194,7 @@ async def update_rule(db: AsyncSession, p: Principal, facility_id: UUID, rule_id
     if r.effective_to and r.effective_from and r.effective_to < r.effective_from:
         raise ValidationAppError("effective_to must not be before effective_from")
     return r
+
+
+async def active_contacts(db: AsyncSession, facility_id: UUID):
+    return [c for c in await repository.contacts(db, facility_id) if c.active_flag]

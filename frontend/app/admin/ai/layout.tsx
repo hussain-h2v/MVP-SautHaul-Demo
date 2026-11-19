@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin/ai", key: "overview" },
+  { href: "/admin/ai/monitoring", key: "monitoring" },
+  { href: "/admin/ai/logs", key: "logs" },
+  { href: "/admin/ai/map", key: "map" },
   { href: "/admin/ai/providers", key: "providers" },
   { href: "/admin/ai/keys", key: "keys" },
   { href: "/admin/ai/models", key: "models" },
@@ -16,7 +19,6 @@ const TABS = [
   { href: "/admin/ai/evals", key: "evals" },
   { href: "/admin/ai/usage", key: "usage" },
   { href: "/admin/ai/budgets", key: "budgets" },
-  { href: "/admin/ai/logs", key: "logs" },
   { href: "/admin/ai/safety", key: "safety" },
 ] as const;
 

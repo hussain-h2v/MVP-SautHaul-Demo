@@ -81,9 +81,13 @@ export function formatPercent(spent: number, limit: number): string {
   return `${Math.min(999, Math.round((spent / limit) * 100))}%`;
 }
 
-export function formatMoney(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "—";
-  return v < 1 ? `$${v.toFixed(4)}` : `$${v.toFixed(2)}`;
+export function formatMoney(v: number | string | null | undefined): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  if (n === 0) return "$0";
+  if (n < 0.01) return `$${n.toFixed(6)}`;
+  return n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`;
 }
 
 export function formatRate(v: number): string {

@@ -620,7 +620,7 @@ async def test_health_states(client, world):
     await client.patch(f"{API}/routes/summarise/enabled", json={"enabled": False})
     h = (await client.get(f"{API}/health")).json()
     states = {t["task"]: t["state"] for t in h["tasks"]}
-    assert states["translate"] == "ok" and states["summarise"] == "off" and h["failed_keys"] == 0 and h["kill_switch"] is False
+    assert states["translate"] == "ok" and states["summarise"] == "off" and h["failed_keys"] == [] and h["kill_switch"] is False
     redis = get_redis()
     try:
         await ai_breaker.failure(redis, "provider", pa, ai_breaker.BreakerConfig(1, 60, 60))
@@ -660,5 +660,5 @@ async def test_config_changes_take_effect_immediately_and_alerts_reach_admin_not
         await db.commit()
     notes = (await client.get("/api/v1/notifications")).json()["items"]
     assert any(n["type"] == "ai.key_disabled" and "dead" in n["title"] for n in notes)
-    assert (await client.get(f"{API}/health")).json()["failed_keys"] == 1
+    assert (await client.get(f"{API}/health")).json()["failed_keys"][0]["label"] == "dead"
     assert (await client.patch(f"{API}/keys/{kid}", json={"status": "active"})).json()["last_error"] is None

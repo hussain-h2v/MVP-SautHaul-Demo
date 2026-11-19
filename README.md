@@ -110,6 +110,15 @@ Creates a built-in **mock** provider, models, routes and prompts so every AI fea
 docker compose -f infra/docker-compose.yml run --rm api python -m scripts.seed_ai_demo
 ```
 
+### Step 6b (optional): demo history for dashboards and insights
+
+Adds 60 days of past appointments, arrivals, delays, requests and escalations (tagged, removable with `--clear`) and a few future bookings the schedule proposal can improve.
+
+```bash
+docker compose -f infra/docker-compose.yml run --rm api python -m scripts.seed_insights_demo
+docker compose -f infra/docker-compose.yml run --rm api python -m scripts.seed_ai_usage_demo
+```
+
 ### Step 7: install frontend dependencies (only for non-Docker frontend)
 
 ```bash
@@ -456,7 +465,7 @@ Booking flow in brief: `place_hold` locks the slots in id order, creates a hold 
 | 6 Coordinator portal | Inbox, decisions, escalations, takeover | Done |
 | 7 AI platform | Router, fallback, budgets, prompts, evals | Done |
 | 8 WhatsApp and agent | Webhook, templates, simulator, LangGraph assistant | In progress (agent and admin screens built and tested; final integration and commit pending) |
-| 9 Insights and optimiser | KPIs, AI insights, optional optimiser | Planned |
+| 9 Insights and optimiser | KPIs, charts, AI briefings, proposal-only optimiser, demo history | Done |
 | 10 Hardening and delivery | Load tests, end-to-end journeys, security review, runbook | Planned |
 
 Known limits: ETAs are driver-declared (no live GPS); Hindi and Telugu strings need native review; TOTP, password-reset email and email delivery are deferred (invite tokens are returned by the API in development); no real AI provider has been called yet (offline mock only).

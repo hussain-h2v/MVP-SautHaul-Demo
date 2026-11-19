@@ -13,7 +13,7 @@ Demo logins (password `SetuHaul-Demo-2026`): `admin@`, `planner@`, `coordinator@
 | Area | Screens / features | Status |
 |---|---|---|
 | Shell | Login, role redirect, route guard, capability-based menus, user menu, language + theme switch, live-status dot (SSE), mobile sidebar, skip link | done (M1) |
-| **Admin** `/admin` | Network dashboard (live totals; KPIs M9) | partial |
+| **Admin** `/admin` | Network dashboard: totals, AI spend, 11 KPIs with period comparison, charts, causes, escalations, CSV, AI briefing | done (M9) |
 | | Facilities, Carriers, Users and roles, Drivers directory, Shipments (+timeline, CSV import), Audit log, Settings | built (M2); list + shipment detail checked in browser |
 | | AI management (providers, keys, models, routes, prompts, evals, usage, budgets, logs, kill switch) | M7 |
 | | WhatsApp management + simulator | M8 |

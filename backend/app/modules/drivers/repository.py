@@ -62,7 +62,11 @@ async def by_licence(db: AsyncSession, licence: str) -> Driver | None:
 
 
 async def by_whatsapp(db: AsyncSession, number: str) -> Driver | None:
-    return (await db.execute(select(Driver).where(Driver.whatsapp_number == number))).scalar_one_or_none()
+    # Stored numbers may carry separators ("+91-9000010001"); WhatsApp delivers E.164 ("+919000010001"): compare ignoring them.
+    from sqlalchemy import func
+
+    clean = func.regexp_replace(Driver.whatsapp_number, r"[^0-9+]", "", "g")
+    return (await db.execute(select(Driver).where((Driver.whatsapp_number == number) | (clean == number)).limit(1))).scalar_one_or_none()
 
 
 async def next_code(db: AsyncSession) -> str:

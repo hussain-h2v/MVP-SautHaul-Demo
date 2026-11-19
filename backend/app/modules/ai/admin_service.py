@@ -366,7 +366,9 @@ async def health(db: AsyncSession, redis: Redis) -> dict:
     kill = (await _setting(db, "ai_kill_switch", False)) is True
     providers = (await db.execute(select(AIProvider).order_by(AIProvider.name))).scalars().all()
     states = {p.id: await breaker.state(redis, "provider", str(p.id), cfg) for p in providers}
-    failed_keys = (await db.execute(select(func.count()).select_from(AIProviderKey).where(AIProviderKey.status == "failed"))).scalar_one()
+    pnames = {p.id: p.name for p in providers}
+    failed_keys = [{"id": k.id, "label": k.label, "provider_name": pnames.get(k.provider_id, "?"), "last_error": k.last_error}
+                   for k in (await db.execute(select(AIProviderKey).where(AIProviderKey.status == "failed").order_by(AIProviderKey.label))).scalars().all()]
     tasks = []
     by_id = {p.id: p for p in providers}
     for r in await routes_out(db):
@@ -386,6 +388,8 @@ async def health(db: AsyncSession, redis: Redis) -> dict:
                     bad_key = True
             state = "degraded" if (states[prim.id] != "closed" or prim.status != "enabled" or bad_key or any(
                 states[by_id[m.provider_id].id] != "closed" for _s, m in steps[1:])) else "ok"
-        tasks.append({"task": r["task"], "state": state})
+        healthy = sum(1 for _s, m in (steps if r["steps"] and not (kill or not r["enabled"]) else [])
+                      if states[by_id[m.provider_id].id] == "closed" and by_id[m.provider_id].status == "enabled")
+        tasks.append({"task": r["task"], "state": state, "steps": len(r["steps"]), "healthy_steps": healthy})
     return {"kill_switch": kill, "failed_keys": failed_keys, "tasks": tasks,
             "providers": [{"id": p.id, "name": p.name, "status": p.status, "breaker": states[p.id], "last_error": p.last_error} for p in providers]}

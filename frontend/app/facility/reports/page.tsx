@@ -6,6 +6,8 @@ import * as React from "react";
 import { toast } from "sonner";
 import { QueryState, TableShell, td, th } from "@/components/facility/common";
 import { RequireFacility } from "@/components/facility/facility-context";
+import { OptimiserPanel } from "@/components/insights/optimiser-panel";
+import { ViewPage } from "@/components/insights/view-page";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/fields";
@@ -59,6 +61,16 @@ function ReportsView({ facility }: { facility: FacilitySummary }) {
           </Button>
         }
       />
+      <section aria-label={t("analytics")} className="mb-10 space-y-6">
+        <h2 className="text-lg font-semibold">{t("analytics")}</h2>
+        <ViewPage
+          view="facility" filenameBase={facility.code} extra={{ facility_id: facility.id }} heatmap
+          kpis={["utilisation_pct", "on_time_rate", "avg_wait_min", "wait_p90_min", "avg_dwell_min", "loads_completed", "no_show_rate", "lost_hours"]}
+          charts={["utilisation", "arrivals", "wait", "delays"]} csv={["series", "by_dock", "heatmap", "dock_events"]}
+        />
+        <OptimiserPanel facilityId={facility.id} timezone={facility.timezone} />
+      </section>
+      <h2 className="mb-3 text-lg font-semibold">{t("detailTitle")}</h2>
       <div role="tablist" aria-label={t("kind")} className="mb-4 flex flex-wrap gap-1 border-b border-border">
         {KINDS.map((k) => (
           <button

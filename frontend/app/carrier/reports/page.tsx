@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import * as React from "react";
 import { toast } from "sonner";
 import { QueryState, TableShell, td, th } from "@/components/facility/common";
+import { ViewPage } from "@/components/insights/view-page";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/fields";
@@ -64,6 +65,15 @@ export default function CarrierReportsPage() {
           </Button>
         }
       />
+      <section aria-label={t("analytics")} className="mb-10 space-y-6">
+        <h2 className="text-lg font-semibold">{t("analytics")}</h2>
+        <ViewPage
+          view="carrier" filenameBase="carrier" narrative={false}
+          kpis={["arrivals", "on_time_rate", "late", "delay_reports", "avg_declared_delay_min", "no_show_rate", "slot_moves", "decline_rate"]}
+          charts={["arrivals"]} csv={["series", "by_driver", "by_lane"]}
+        />
+      </section>
+      <h2 className="mb-3 text-lg font-semibold">{t("detailTitle")}</h2>
       <div role="tablist" aria-label={t("kind")} className="mb-4 flex flex-wrap gap-1 border-b border-border">
         {KINDS.map((k) => (
           <button

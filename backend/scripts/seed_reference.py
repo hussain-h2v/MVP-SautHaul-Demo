@@ -132,12 +132,22 @@ async def main(sqlite_path: str) -> None:
                     out["code"] = d["vehicle_type_code"]
                 if table == "drivers":
                     out.update(whatsapp_number=d["phone"], whatsapp_opt_in=True, verified_at=now,
-                               preferred_language="en")
+                               preferred_language="en", verification_attempts=0)
                 out.setdefault("created_at", now)
                 out.setdefault("updated_at", now)
                 out["version"] = 1
+                if table == "vehicles":
+                    out.setdefault("heavy_capable", False)
+                if table == "shipments":
+                    out.setdefault("required_dock_type", "ANY")
+                    out.setdefault("offer_status", "draft")
+                json_cols: set[str] = set()
+                # Raw INSERT bypasses ORM defaults; these columns were added after the source DB and are NOT NULL JSONB.
+                for col in {"carriers": "allowed_vehicle_type_codes", "docks": "compatible_vehicle_type_codes"}.get(table, "").split():
+                    out[col] = "[]"
+                    json_cols.add(col)
                 cols = ", ".join(out)
-                params = ", ".join(f":{c}" for c in out)
+                params = ", ".join(f"CAST(:{c} AS jsonb)" if c in json_cols else f":{c}" for c in out)
                 await conn.execute(
                     text(f"INSERT INTO {table} ({cols}) VALUES ({params}) ON CONFLICT (id) DO NOTHING"), out
                 )

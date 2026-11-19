@@ -1,0 +1,16 @@
+# SITE_ADDRESS is set in .env, e.g. 13-232-1-2.sslip.io or demo.example.com
+{$SITE_ADDRESS} {
+	encode gzip
+
+	@backend path /api/* /webhooks/* /healthz /readyz /docs /openapi.json
+	handle @backend {
+		# flush_interval -1 keeps the SSE stream (/api/v1/events/stream) live
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy web:2000
+	}
+}

@@ -1,0 +1,89 @@
+# Single-host demo stack. Usage (from repo root):
+#   docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --build
+name: setuhaul-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: setuhaul
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: setuhaul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U setuhaul"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://setuhaul:${POSTGRES_PASSWORD}@postgres:5432/setuhaul
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://setuhaul:${POSTGRES_PASSWORD}@postgres:5432/setuhaul
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web.prod
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
